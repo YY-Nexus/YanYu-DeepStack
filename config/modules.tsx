@@ -1,0 +1,60 @@
+import type { ModuleConfig } from "@/types/modules"
+
+export const moduleConfigs: ModuleConfig[] = [
+  {
+    id: "ai-code-generation",
+    name: "AI代码生成",
+    description: "智能生成多语言代码",
+    icon: "🤖",
+    color: "coral-pink",
+    path: "/ai-code",
+  },
+  {
+    id: "app-development",
+    name: "应用开发",
+    description: "低代码可视化开发",
+    icon: "🛠️",
+    color: "mint-green",
+    path: "/app-dev",
+  },
+  {
+    id: "real-time-preview",
+    name: "实时预览",
+    description: "多格式内容预览",
+    icon: "👁️",
+    color: "sky-blue",
+    path: "/preview",
+  },
+  {
+    id: "automation-production",
+    name: "自动化生产",
+    description: "任务调度与部署",
+    icon: "⚡",
+    color: "lemon-yellow",
+    path: "/automation",
+  },
+  {
+    id: "file-review",
+    name: "文件审查",
+    description: "代码质量检测",
+    icon: "🔍",
+    color: "light-blue",
+    path: "/review",
+  },
+  {
+    id: "score-analysis",
+    name: "评分分析",
+    description: "质量评估与建议",
+    icon: "📊",
+    color: "coral-pink",
+    path: "/analysis",
+  },
+  {
+    id: "deployment-management",
+    name: "部署管理",
+    description: "多环境部署控制",
+    icon: "🚀",
+    color: "mint-green",
+    path: "/deploy",
+  },
+]

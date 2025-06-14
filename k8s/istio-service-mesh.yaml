@@ -1,0 +1,132 @@
+# Istio服务网格配置
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: yanyu-cloud-gateway
+  namespace: yanyu-cloud
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*.yanyu.cloud"
+    tls:
+      httpsRedirect: true
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: yanyu-cloud-tls
+    hosts:
+    - "*.yanyu.cloud"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: yanyu-cloud-vs
+  namespace: yanyu-cloud
+spec:
+  hosts:
+  - "api.yanyu.cloud"
+  gateways:
+  - yanyu-cloud-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/api/ai"
+    route:
+    - destination:
+        host: ai-service
+        port:
+          number: 3001
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 30s
+  - match:
+    - uri:
+        prefix: "/api/projects"
+    route:
+    - destination:
+        host: project-service
+        port:
+          number: 3002
+    retries:
+      attempts: 3
+      perTryTimeout: 30s
+  - match:
+    - uri:
+        prefix: "/api/auth"
+    route:
+    - destination:
+        host: auth-service
+        port:
+          number: 3003
+    retries:
+      attempts: 2
+      perTryTimeout: 15s
+  - route:
+    - destination:
+        host: api-gateway-service
+        port:
+          number: 80
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: yanyu-cloud-dr
+  namespace: yanyu-cloud
+spec:
+  host: "*.yanyu.cloud"
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        maxRequestsPerConnection: 10
+    circuitBreaker:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: yanyu-cloud-pa
+  namespace: yanyu-cloud
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: yanyu-cloud-authz
+  namespace: yanyu-cloud
+spec:
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/yanyu-cloud/sa/default"]
+  - to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
