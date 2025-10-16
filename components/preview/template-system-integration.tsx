@@ -27,21 +27,7 @@ export default function TemplateSystemIntegration({
   selectedLanguage,
   selectedFramework,
 }: TemplateSystemIntegrationProps) {
-  const {
-    templates,
-    filteredTemplates,
-    searchQuery,
-    selectedCategory,
-    selectedLanguage: storeLanguage,
-    isLoading,
-    fetchTemplates,
-    searchTemplates,
-    filterByCategory,
-    filterByLanguage,
-    createTemplate,
-    updateTemplate,
-    deleteTemplate,
-  } = useTemplateStore()
+  const {    templates,    filter,    isLoading,    fetchTemplates,    setFilter,    createTemplate,    updateTemplate,    deleteTemplate,    getFilteredTemplates,  } = useTemplateStore()
 
   const [activeTab, setActiveTab] = useState("browse")
   const [selectedTemplate, setSelectedTemplate] = useState<CodeTemplate | null>(null)
@@ -70,12 +56,7 @@ export default function TemplateSystemIntegration({
     }
   }, [templates.length, fetchTemplates])
 
-  // 同步外部语言选择
-  useEffect(() => {
-    if (selectedLanguage && selectedLanguage !== storeLanguage) {
-      filterByLanguage(selectedLanguage)
-    }
-  }, [selectedLanguage, storeLanguage, filterByLanguage])
+  // 同步外部语言选择  useEffect(() => {    if (selectedLanguage && selectedLanguage !== filter.language) {      setFilter({ language: selectedLanguage })    }  }, [selectedLanguage, filter.language, setFilter])
 
   // 提取模板变量
   const extractTemplateVariables = (prompt: string): string[] => {
@@ -221,18 +202,18 @@ export default function TemplateSystemIntegration({
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         placeholder="搜索模板..."
-                        value={searchQuery}
-                        onChange={(e) => searchTemplates(e.target.value)}
+                        value={filter.search || ""}
+                        onChange={(e) => setFilter({ search: e.target.value })}
                         className="pl-10"
                       />
                     </div>
                   </div>
-                  <Select value={selectedCategory} onValueChange={filterByCategory}>
+                  <Select value={filter.category} onValueChange={(value) => setFilter({ category: value === "" ? undefined : value as any })}>
                     <SelectTrigger className="w-full sm:w-48">
                       <SelectValue placeholder="选择分类" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">所有分类</SelectItem>
+                      <SelectItem value="">所有分类</SelectItem>
                       <SelectItem value="component">组件</SelectItem>
                       <SelectItem value="function">函数</SelectItem>
                       <SelectItem value="api">API</SelectItem>
@@ -240,12 +221,12 @@ export default function TemplateSystemIntegration({
                       <SelectItem value="database">数据库</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={storeLanguage} onValueChange={filterByLanguage}>
+                  <Select value={filter.language} onValueChange={(value) => setFilter({ language: value === "" ? undefined : value })}>
                     <SelectTrigger className="w-full sm:w-48">
                       <SelectValue placeholder="选择语言" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">所有语言</SelectItem>
+                      <SelectItem value="">所有语言</SelectItem>
                       <SelectItem value="JavaScript">JavaScript</SelectItem>
                       <SelectItem value="TypeScript">TypeScript</SelectItem>
                       <SelectItem value="Python">Python</SelectItem>
@@ -258,7 +239,7 @@ export default function TemplateSystemIntegration({
                 {/* 模板列表 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <AnimatePresence>
-                    {filteredTemplates.map((template) => (
+                    {getFilteredTemplates().map((template) => (
                       <motion.div
                         key={template.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -276,7 +257,7 @@ export default function TemplateSystemIntegration({
                               </div>
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Star className="h-3 w-3" />
-                                {template.rating.toFixed(1)}
+                                {template.rating?.toFixed(1) || '0.0'}
                               </div>
                             </div>
                           </CardHeader>
@@ -295,7 +276,7 @@ export default function TemplateSystemIntegration({
                                   {template.category}
                                 </Badge>
                               </div>
-
+                              
                               <div className="flex items-center justify-between text-xs text-muted-foreground">
                                 <div className="flex items-center gap-1">
                                   <Eye className="h-3 w-3" />
@@ -303,7 +284,7 @@ export default function TemplateSystemIntegration({
                                 </div>
                                 <div>{new Date(template.updatedAt).toLocaleDateString()}</div>
                               </div>
-
+                              
                               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button
                                   size="sm"
@@ -327,7 +308,7 @@ export default function TemplateSystemIntegration({
                   </AnimatePresence>
                 </div>
 
-                {filteredTemplates.length === 0 && !isLoading && (
+                {getFilteredTemplates().length === 0 && !isLoading && (
                   <div className="text-center py-12">
                     <Template className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold mb-2">没有找到匹配的模板</h3>

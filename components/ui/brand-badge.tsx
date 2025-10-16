@@ -5,7 +5,7 @@ import type React from "react"
 import { motion } from "framer-motion"
 
 interface BrandBadgeProps {
-  variant?: "primary" | "success" | "warning" | "error" | "info"
+  variant?: "primary" | "success" | "warning" | "error" | "info" | "default" | "outline" | "secondary" | "solid"
   size?: "sm" | "md" | "lg"
   children: React.ReactNode
   className?: string
@@ -18,6 +18,10 @@ export function BrandBadge({ variant = "primary", size = "md", children, classNa
     warning: "bg-yellow-100 text-yellow-700 border-yellow-200",
     error: "bg-red-100 text-red-700 border-red-200",
     info: "bg-blue-100 text-blue-700 border-blue-200",
+    default: "bg-gray-100 text-gray-700 border-gray-200",
+    outline: "bg-transparent border-gray-300 text-gray-700",
+    secondary: "bg-gray-200 text-gray-800 border-gray-300",
+    solid: "bg-gray-800 text-white border-gray-800",
   }
 
   const sizes = {

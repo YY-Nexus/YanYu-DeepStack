@@ -2,16 +2,105 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Activity, MessageSquare, Clock, TrendingUp } from "lucide-react"
+import { 
+  Activity, 
+  MessageSquare, 
+  Clock, 
+  TrendingUp, 
+  Bell,
+  Settings,
+  User,
+  Code,
+  GitBranch,
+  Database,
+  Shield,
+  Zap,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  RefreshCw
+} from "lucide-react"
+import { BrandCard } from "@/components/ui/brand-card"
+import { BrandBadge } from "@/components/ui/brand-badge"
+import { BrandButton } from "@/components/ui/brand-button"
+
+interface Notification {
+  id: string
+  type: "info" | "warning" | "error" | "success"
+  title: string
+  message: string
+  timestamp: Date
+  read: boolean
+}
+
+interface Task {
+  id: string
+  title: string
+  status: "pending" | "running" | "completed" | "failed"
+  progress: number
+  estimatedTime?: string
+}
 
 export default function RightPanel() {
-  const [activeTab, setActiveTab] = useState<"tasks" | "logs" | "assistant" | "analytics">("tasks")
+  const [activeTab, setActiveTab] = useState<"dashboard" | "notifications" | "tasks" | "assistant">("dashboard")
   const [realTimeData, setRealTimeData] = useState({
     cpuUsage: 45,
     memoryUsage: 62,
     activeUsers: 12,
     tasksCompleted: 8,
+    deploymentsToday: 3,
+    codeQualityScore: 85
   })
+
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: "1",
+      type: "success",
+      title: "部署成功",
+      message: "生产环境部署已完成",
+      timestamp: new Date(Date.now() - 1000 * 60 * 5),
+      read: false
+    },
+    {
+      id: "2", 
+      type: "warning",
+      title: "性能警告",
+      message: "API响应时间超过阈值",
+      timestamp: new Date(Date.now() - 1000 * 60 * 15),
+      read: false
+    },
+    {
+      id: "3",
+      type: "info",
+      title: "代码审查",
+      message: "新的PR等待审查",
+      timestamp: new Date(Date.now() - 1000 * 60 * 30),
+      read: true
+    }
+  ])
+
+  const [currentTasks, setCurrentTasks] = useState<Task[]>([
+    {
+      id: "1",
+      title: "代码构建",
+      status: "running",
+      progress: 75,
+      estimatedTime: "2分钟"
+    },
+    {
+      id: "2",
+      title: "单元测试",
+      status: "completed",
+      progress: 100
+    },
+    {
+      id: "3",
+      title: "部署到测试环境",
+      status: "pending",
+      progress: 0,
+      estimatedTime: "5分钟"
+    }
+  ])
 
   // 模拟实时数据更新
   useEffect(() => {
@@ -20,18 +109,53 @@ export default function RightPanel() {
         cpuUsage: Math.max(20, Math.min(80, prev.cpuUsage + (Math.random() - 0.5) * 10)),
         memoryUsage: Math.max(30, Math.min(90, prev.memoryUsage + (Math.random() - 0.5) * 8)),
         activeUsers: Math.max(5, Math.min(25, prev.activeUsers + Math.floor((Math.random() - 0.5) * 4))),
-        tasksCompleted: prev.tasksCompleted + (Math.random() > 0.7 ? 1 : 0),
+        tasksCompleted: prev.tasksCompleted + (Math.random() > 0.8 ? 1 : 0),
+        deploymentsToday: prev.deploymentsToday + (Math.random() > 0.9 ? 1 : 0),
+        codeQualityScore: Math.max(70, Math.min(95, prev.codeQualityScore + (Math.random() - 0.5) * 2))
+      }))
+
+      // 模拟任务进度更新
+      setCurrentTasks(prev => prev.map(task => {
+        if (task.status === "running" && Math.random() > 0.7) {
+          const newProgress = Math.min(100, task.progress + Math.random() * 15)
+          return {
+            ...task,
+            progress: newProgress,
+            status: newProgress >= 100 ? "completed" : "running"
+          }
+        }
+        return task
       }))
     }, 3000)
 
     return () => clearInterval(interval)
   }, [])
 
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "success": return <CheckCircle className="h-4 w-4 text-green-500" />
+      case "warning": return <AlertTriangle className="h-4 w-4 text-yellow-500" />
+      case "error": return <XCircle className="h-4 w-4 text-red-500" />
+      default: return <Bell className="h-4 w-4 text-blue-500" />
+    }
+  }
+
+  const getTaskStatusIcon = (status: string) => {
+    switch (status) {
+      case "running": return <RefreshCw className="h-3 w-3 animate-spin text-blue-500" />
+      case "completed": return <CheckCircle className="h-3 w-3 text-green-500" />
+      case "failed": return <XCircle className="h-3 w-3 text-red-500" />
+      default: return <Clock className="h-3 w-3 text-gray-400" />
+    }
+  }
+
+  const unreadNotifications = notifications.filter(n => !n.read).length
+
   const tabs = [
-    { id: "tasks", label: "任务", icon: Activity },
-    { id: "logs", label: "日志", icon: Clock },
-    { id: "assistant", label: "助手", icon: MessageSquare },
-    { id: "analytics", label: "分析", icon: TrendingUp },
+    { id: "dashboard", label: "仪表板", icon: Activity, badge: undefined },
+    { id: "notifications", label: "通知", icon: Bell, badge: unreadNotifications },
+    { id: "tasks", label: "任务", icon: Settings, badge: undefined },
+    { id: "assistant", label: "助手", icon: MessageSquare, badge: undefined },
   ] as const
 
   return (
@@ -52,10 +176,22 @@ export default function RightPanel() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Icon className="h-4 w-4 mx-auto mb-1" />
-              <div>{tab.label}</div>
+              <div className="flex flex-col items-center space-y-1">
+                <div className="relative">
+                  <Icon className="h-4 w-4" />
+                  {tab.badge && tab.badge > 0 && (
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                      {tab.badge > 9 ? "9+" : tab.badge}
+                    </div>
+                  )}
+                </div>
+                <span>{tab.label}</span>
+              </div>
               {activeTab === tab.id && (
-                <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-blue" />
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-sky-blue"
+                />
               )}
             </motion.button>
           )
@@ -63,204 +199,269 @@ export default function RightPanel() {
       </div>
 
       {/* 内容区域 */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-            className="h-full p-4"
-          >
-            {activeTab === "tasks" && <TasksPanel realTimeData={realTimeData} />}
-            {activeTab === "logs" && <LogsPanel />}
-            {activeTab === "assistant" && <AssistantPanel />}
-            {activeTab === "analytics" && <AnalyticsPanel realTimeData={realTimeData} />}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </div>
-  )
-}
-
-// 任务面板组件
-function TasksPanel({ realTimeData }: { realTimeData: any }) {
-  const tasks = [
-    { name: "AI代码生成", progress: 75, status: "running", color: "coral-pink" },
-    { name: "质量检测", progress: 45, status: "running", color: "mint-green" },
-    { name: "部署准备", progress: 20, status: "pending", color: "sky-blue" },
-    { name: "文档生成", progress: 100, status: "completed", color: "lemon-yellow" },
-  ]
-
-  return (
-    <div className="space-y-4">
-      {/* 系统状态 */}
-      <div className="bg-gradient-to-r from-sky-blue/10 to-mint-green/10 p-3 rounded-lg">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">系统状态</h4>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div>CPU: {realTimeData.cpuUsage.toFixed(0)}%</div>
-          <div>内存: {realTimeData.memoryUsage.toFixed(0)}%</div>
-          <div>用户: {realTimeData.activeUsers}</div>
-          <div>完成: {realTimeData.tasksCompleted}</div>
-        </div>
-      </div>
-
-      {/* 任务列表 */}
-      <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">当前任务</h4>
-        <div className="space-y-3">
-          {tasks.map((task, index) => (
+          {activeTab === "dashboard" && (
             <motion.div
-              key={task.name}
-              initial={{ opacity: 0, y: 10 }}
+              key="dashboard"
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white p-3 rounded-lg shadow-sm border border-gray-100"
+              exit={{ opacity: 0, y: -20 }}
+              className="p-4 space-y-4"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-800">{task.name}</span>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    task.status === "completed"
-                      ? "bg-green-100 text-green-700"
-                      : task.status === "running"
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  {task.status === "completed" ? "已完成" : task.status === "running" ? "进行中" : "等待中"}
-                </span>
+              {/* 系统状态概览 */}
+              <BrandCard variant="glass" className="p-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                  <Activity className="h-4 w-4 mr-2" />
+                  系统状态
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-600">CPU使用率</span>
+                      <span className="font-medium">{realTimeData.cpuUsage.toFixed(0)}%</span>
+                    </div>
+                    <div className="bg-gray-100 rounded-full h-2">
+                      <motion.div
+                        animate={{ width: `${realTimeData.cpuUsage}%` }}
+                        className={`h-full rounded-full transition-colors duration-300 ${
+                          realTimeData.cpuUsage > 70 ? "bg-red-500" : 
+                          realTimeData.cpuUsage > 50 ? "bg-yellow-500" : "bg-green-500"
+                        }`}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-gray-600">内存使用率</span>
+                      <span className="font-medium">{realTimeData.memoryUsage.toFixed(0)}%</span>
+                    </div>
+                    <div className="bg-gray-100 rounded-full h-2">
+                      <motion.div
+                        animate={{ width: `${realTimeData.memoryUsage}%` }}
+                        className={`h-full rounded-full transition-colors duration-300 ${
+                          realTimeData.memoryUsage > 70 ? "bg-red-500" : 
+                          realTimeData.memoryUsage > 50 ? "bg-yellow-500" : "bg-green-500"
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </BrandCard>
+
+              {/* 今日统计 */}
+              <div className="grid grid-cols-2 gap-3">
+                <BrandCard variant="outlined" className="p-3 text-center">
+                  <div className="w-8 h-8 bg-mint-green/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <User className="h-4 w-4 text-mint-green" />
+                  </div>
+                  <div className="text-lg font-bold text-gray-800">{realTimeData.activeUsers}</div>
+                  <div className="text-xs text-gray-600">在线用户</div>
+                </BrandCard>
+
+                <BrandCard variant="outlined" className="p-3 text-center">
+                  <div className="w-8 h-8 bg-sky-blue/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <CheckCircle className="h-4 w-4 text-sky-blue" />
+                  </div>
+                  <div className="text-lg font-bold text-gray-800">{realTimeData.tasksCompleted}</div>
+                  <div className="text-xs text-gray-600">完成任务</div>
+                </BrandCard>
+
+                <BrandCard variant="outlined" className="p-3 text-center">
+                  <div className="w-8 h-8 bg-coral-pink/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Zap className="h-4 w-4 text-coral-pink" />
+                  </div>
+                  <div className="text-lg font-bold text-gray-800">{realTimeData.deploymentsToday}</div>
+                  <div className="text-xs text-gray-600">今日部署</div>
+                </BrandCard>
+
+                <BrandCard variant="outlined" className="p-3 text-center">
+                  <div className="w-8 h-8 bg-lemon-yellow/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Shield className="h-4 w-4 text-lemon-yellow" />
+                  </div>
+                  <div className="text-lg font-bold text-gray-800">{realTimeData.codeQualityScore.toFixed(0)}</div>
+                  <div className="text-xs text-gray-600">代码质量</div>
+                </BrandCard>
               </div>
-              <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${task.progress}%` }}
-                  transition={{ duration: 1, delay: index * 0.1 + 0.5 }}
-                  className={`h-full bg-${task.color} rounded-full`}
-                />
-              </div>
-              <div className="text-xs text-gray-500 mt-1">{task.progress}% 完成</div>
+
+              {/* 快速操作 */}
+              <BrandCard variant="outlined" className="p-4">
+                <h4 className="text-sm font-semibold text-gray-800 mb-3">快速操作</h4>
+                <div className="space-y-2">
+                  <BrandButton variant="outline" size="sm" className="w-full justify-start" icon={<Code className="h-3 w-3" />}>
+                    生成代码
+                  </BrandButton>
+                  <BrandButton variant="outline" size="sm" className="w-full justify-start" icon={<GitBranch className="h-3 w-3" />}>
+                    创建分支
+                  </BrandButton>
+                  <BrandButton variant="outline" size="sm" className="w-full justify-start" icon={<Database className="h-3 w-3" />}>
+                    数据备份
+                  </BrandButton>
+                </div>
+              </BrandCard>
             </motion.div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
+          )}
 
-// 日志面板组件
-function LogsPanel() {
-  const [logs] = useState([
-    { time: "12:34:56", level: "info", message: "系统启动完成" },
-    { time: "12:35:02", level: "info", message: "加载AI模型中..." },
-    { time: "12:35:08", level: "warning", message: "内存使用率较高" },
-    { time: "12:35:15", level: "success", message: "代码生成完成" },
-    { time: "12:35:22", level: "error", message: "网络连接超时" },
-    { time: "12:35:30", level: "info", message: "准备就绪" },
-  ])
-
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case "error":
-        return "text-red-600"
-      case "warning":
-        return "text-yellow-600"
-      case "success":
-        return "text-green-600"
-      default:
-        return "text-blue-600"
-    }
-  }
-
-  return (
-    <div>
-      <h4 className="text-sm font-medium text-gray-700 mb-3">实时日志</h4>
-      <div className="bg-gray-900 rounded-lg p-3 h-80 overflow-y-auto text-xs font-mono">
-        {logs.map((log, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className={`mb-1 ${getLevelColor(log.level)}`}
-          >
-            <span className="text-gray-400">[{log.time}]</span> {log.message}
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// AI助手面板组件
-function AssistantPanel() {
-  const suggestions = [
-    { icon: "💡", title: "性能优化", desc: "建议优化代码结构，提升性能表现" },
-    { icon: "🔧", title: "代码重构", desc: "检测到重复代码，建议进行重构" },
-    { icon: "🚀", title: "部署建议", desc: "推荐使用CDN加速静态资源加载" },
-    { icon: "📊", title: "数据分析", desc: "用户行为数据显示异常，需要关注" },
-  ]
-
-  return (
-    <div className="space-y-4">
-      <h4 className="text-sm font-medium text-gray-700">AI智能建议</h4>
-      {suggestions.map((suggestion, index) => (
-        <motion.div
-          key={suggestion.title}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: index * 0.1 }}
-          className="bg-gradient-to-r from-sky-blue/5 to-mint-green/5 p-3 rounded-lg border border-sky-blue/20 hover-lift cursor-pointer"
-        >
-          <div className="flex items-start space-x-3">
-            <span className="text-lg">{suggestion.icon}</span>
-            <div className="flex-1">
-              <h5 className="text-sm font-medium text-gray-800 mb-1">{suggestion.title}</h5>
-              <p className="text-xs text-gray-600">{suggestion.desc}</p>
-            </div>
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  )
-}
-
-// 分析面板组件
-function AnalyticsPanel({ realTimeData }: { realTimeData: any }) {
-  return (
-    <div className="space-y-4">
-      <h4 className="text-sm font-medium text-gray-700">实时分析</h4>
-
-      {/* 性能指标 */}
-      <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-        <h5 className="text-sm font-medium text-gray-800 mb-2">性能指标</h5>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-600">CPU使用率</span>
-            <span className="text-xs font-medium">{realTimeData.cpuUsage.toFixed(0)}%</span>
-          </div>
-          <div className="bg-gray-100 rounded-full h-1.5">
+          {activeTab === "notifications" && (
             <motion.div
-              animate={{ width: `${realTimeData.cpuUsage}%` }}
-              className="h-full bg-coral-pink rounded-full"
-            />
-          </div>
-        </div>
-      </div>
+              key="notifications"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-800">通知中心</h4>
+                <BrandButton 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                >
+                  全部已读
+                </BrandButton>
+              </div>
+              
+              {notifications.map((notification) => (
+                <motion.div
+                  key={notification.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className={`p-3 rounded-lg border transition-colors cursor-pointer ${
+                    notification.read 
+                      ? "bg-gray-50 border-gray-200" 
+                      : "bg-white border-sky-blue/30 shadow-sm"
+                  }`}
+                  onClick={() => setNotifications(prev => 
+                    prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+                  )}
+                >
+                  <div className="flex items-start space-x-3">
+                    {getNotificationIcon(notification.type)}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <h5 className="text-sm font-medium text-gray-800 truncate">{notification.title}</h5>
+                        {!notification.read && (
+                          <div className="w-2 h-2 bg-sky-blue rounded-full flex-shrink-0" />
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">{notification.message}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {notification.timestamp.toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
 
-      {/* 用户活动 */}
-      <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-        <h5 className="text-sm font-medium text-gray-800 mb-2">用户活动</h5>
-        <div className="text-2xl font-bold text-mint-green">{realTimeData.activeUsers}</div>
-        <div className="text-xs text-gray-600">当前在线用户</div>
-      </div>
+          {activeTab === "tasks" && (
+            <motion.div
+              key="tasks"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="p-4 space-y-3"
+            >
+              <h4 className="text-sm font-semibold text-gray-800">当前任务</h4>
+              
+              {currentTasks.map((task) => (
+                <BrandCard key={task.id} variant="outlined" className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      {getTaskStatusIcon(task.status)}
+                      <h5 className="text-sm font-medium text-gray-800">{task.title}</h5>
+                    </div>
+                    <BrandBadge 
+                      variant={
+                        task.status === "completed" ? "success" :
+                        task.status === "running" ? "info" :
+                        task.status === "failed" ? "error" : "warning"
+                      }
+                      size="sm"
+                    >
+                      {task.status === "completed" ? "完成" :
+                       task.status === "running" ? "运行中" :
+                       task.status === "failed" ? "失败" : "等待"}
+                    </BrandBadge>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-600">进度</span>
+                      <span className="font-medium">{task.progress}%</span>
+                    </div>
+                    <div className="bg-gray-100 rounded-full h-1.5">
+                      <motion.div
+                        animate={{ width: `${task.progress}%` }}
+                        className="h-full bg-sky-blue rounded-full"
+                        transition={{ duration: 0.5 }}
+                      />
+                    </div>
+                    {task.estimatedTime && (
+                      <div className="text-xs text-gray-500">
+                        预计剩余: {task.estimatedTime}
+                      </div>
+                    )}
+                  </div>
+                </BrandCard>
+              ))}
+            </motion.div>
+          )}
 
-      {/* 任务统计 */}
-      <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-        <h5 className="text-sm font-medium text-gray-800 mb-2">任务统计</h5>
-        <div className="text-2xl font-bold text-sky-blue">{realTimeData.tasksCompleted}</div>
-        <div className="text-xs text-gray-600">今日完成任务</div>
+          {activeTab === "assistant" && (
+            <motion.div
+              key="assistant"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="p-4 space-y-4"
+            >
+              <h4 className="text-sm font-semibold text-gray-800">AI助手建议</h4>
+              
+              <div className="space-y-3">
+                <BrandCard variant="glass" className="p-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-sky-blue to-mint-green rounded-full flex items-center justify-center flex-shrink-0">
+                      <MessageSquare className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-800 mb-1">代码优化建议</h5>
+                      <p className="text-xs text-gray-600 mb-2">检测到可以优化的算法复杂度，建议使用更高效的数据结构。</p>
+                      <BrandButton variant="outline" size="sm">查看详情</BrandButton>
+                    </div>
+                  </div>
+                </BrandCard>
+
+                <BrandCard variant="glass" className="p-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-coral-pink to-lemon-yellow rounded-full flex items-center justify-center flex-shrink-0">
+                      <Shield className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-800 mb-1">安全提醒</h5>
+                      <p className="text-xs text-gray-600 mb-2">发现潜在的SQL注入风险，建议使用参数化查询。</p>
+                      <BrandButton variant="outline" size="sm">立即修复</BrandButton>
+                    </div>
+                  </div>
+                </BrandCard>
+
+                <BrandCard variant="glass" className="p-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-mint-green to-sky-blue rounded-full flex items-center justify-center flex-shrink-0">
+                      <TrendingUp className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-800 mb-1">性能优化</h5>
+                      <p className="text-xs text-gray-600 mb-2">数据库查询响应时间较慢，建议添加索引优化。</p>
+                      <BrandButton variant="outline" size="sm">优化</BrandButton>
+                    </div>
+                  </div>
+                </BrandCard>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

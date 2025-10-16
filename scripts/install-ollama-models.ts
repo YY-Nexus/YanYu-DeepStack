@@ -227,7 +227,7 @@ class OllamaModelInstaller {
   // 显示模型信息
   private displayModelInfo(): void {
     console.log("\n📋 可用模型列表:")
-    console.log("=" * 60)
+    console.log("=".repeat(60))
 
     const categories = ["general", "chinese", "coding"]
     const categoryNames = {
@@ -273,7 +273,7 @@ class OllamaModelInstaller {
   // 主要安装流程
   public async install(): Promise<void> {
     console.log("🚀 Ollama模型安装器")
-    console.log("=" * 50)
+    console.log("=".repeat(50))
 
     // 检查Ollama可用性
     if (!this.checkOllamaAvailable()) {
@@ -337,7 +337,7 @@ class OllamaModelInstaller {
     const failed = results.filter((r) => !r.success).length
 
     console.log("\n📊 安装结果:")
-    console.log("=" * 30)
+    console.log("=".repeat(30))
     console.log(`✅ 成功: ${successful}个`)
     console.log(`❌ 失败: ${failed}个`)
 

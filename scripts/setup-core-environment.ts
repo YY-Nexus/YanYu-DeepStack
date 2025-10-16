@@ -358,7 +358,7 @@ CACHE_TTL=3600
   // 提供Ollama安装指导
   private provideOllamaInstallationGuide(): void {
     console.log("\n📖 Ollama安装指南:")
-    console.log("=" * 50)
+    console.log("=".repeat(50))
 
     const isOllamaInstalled = this.checkOllamaInstallation()
 
@@ -443,7 +443,7 @@ npm run dev
   public async setup(): Promise<void> {
     try {
       console.log("🎯 言語云³深度堆栈 - 核心环境变量配置")
-      console.log("=" * 60)
+      console.log("=".repeat(60))
 
       // 生成核心配置
       const config = await this.generateCoreConfig()
@@ -461,7 +461,7 @@ npm run dev
       this.provideOllamaInstallationGuide()
 
       console.log("\n🎉 核心环境变量配置完成!")
-      console.log("=" * 60)
+      console.log("=".repeat(60))
 
       if (isValid) {
         console.log("✅ 所有配置验证通过，可以启动应用")

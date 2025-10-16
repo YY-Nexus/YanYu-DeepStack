@@ -106,6 +106,8 @@ export default function ProjectCard({
             checked={isSelected}
             onChange={(e) => onSelect(e.target.checked)}
             className="w-4 h-4 text-cloud-blue-500 border-gray-300 rounded focus:ring-cloud-blue-500"
+            aria-label={`选择项目 ${project.name}`}
+            title={`选择项目 ${project.name}`}
           />
 
           {/* 项目图标 */}
@@ -164,9 +166,10 @@ export default function ProjectCard({
               <BrandButton
                 variant="ghost"
                 size="sm"
-                icon={<MoreHorizontal className="h-4 w-4" />}
                 onClick={() => setShowMenu(!showMenu)}
-              />
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </BrandButton>
               {showMenu && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -222,6 +225,8 @@ export default function ProjectCard({
           checked={isSelected}
           onChange={(e) => onSelect(e.target.checked)}
           className="absolute top-4 left-4 w-4 h-4 text-cloud-blue-500 border-gray-300 rounded focus:ring-cloud-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label={`选择项目 ${project.name}`}
+          title={`选择项目 ${project.name}`}
         />
 
         {/* 项目图标和状态 */}
@@ -237,10 +242,11 @@ export default function ProjectCard({
               <BrandButton
                 variant="ghost"
                 size="sm"
-                icon={<MoreHorizontal className="h-4 w-4" />}
                 onClick={() => setShowMenu(!showMenu)}
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
-              />
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </BrandButton>
               {showMenu && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}

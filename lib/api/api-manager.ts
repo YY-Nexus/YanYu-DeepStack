@@ -1,5 +1,7 @@
 "use client"
 
+import { ConfigService } from '../config/config-service';
+
 // 定义API密钥类型
 interface APIKey {
   id: string
@@ -190,10 +192,10 @@ export class APIManager {
       type: "version-control",
       description: "GitHub代码仓库集成",
       config: {
-        clientId: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || "",
-        clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
+        clientId: ConfigService.getInstance().get('GITHUB_CLIENT_ID') || "",
+        clientSecret: ConfigService.getInstance().get('GITHUB_CLIENT_SECRET') || "",
         scopes: ["repo", "user", "workflow"],
-        webhookUrl: `${window.location.origin}/api/webhooks/github`,
+        webhookUrl: `${ConfigService.getInstance().getBaseUrl()}/api/webhooks/github`,
       },
       endpoints: [
         {
@@ -224,10 +226,10 @@ export class APIManager {
       type: "communication",
       description: "Slack团队协作集成",
       config: {
-        clientId: process.env.NEXT_PUBLIC_SLACK_CLIENT_ID || "",
-        clientSecret: process.env.SLACK_CLIENT_SECRET || "",
+        clientId: ConfigService.getInstance().get('SLACK_CLIENT_ID') || "",
+        clientSecret: ConfigService.getInstance().get('SLACK_CLIENT_SECRET') || "",
         scopes: ["chat:write", "channels:read", "users:read"],
-        webhookUrl: `${window.location.origin}/api/webhooks/slack`,
+        webhookUrl: `${ConfigService.getInstance().getBaseUrl()}/api/webhooks/slack`,
       },
       endpoints: [
         {
@@ -256,7 +258,7 @@ export class APIManager {
         baseUrl: "",
         username: "",
         apiToken: "",
-        webhookUrl: `${window.location.origin}/api/webhooks/jira`,
+        webhookUrl: `${ConfigService.getInstance().getBaseUrl()}/api/webhooks/jira`,
       },
       endpoints: [
         {

@@ -249,7 +249,7 @@ fetchData();
 
       // 设置超时
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
+        window.setTimeout(() => {
           reject(new Error(`执行超时（${timeout}ms）`))
         }, timeout)
       })
@@ -259,7 +259,7 @@ fetchData();
         try {
           if (file.language === "javascript" || file.language === "typescript") {
             // 创建安全的执行环境
-            const safeCode = createSafeExecutionEnvironment(file.content, {
+            const safeCode = createSafeExecutionEnvironment(file.content || "", {
               allowNetwork,
               dependencies: dependencies.map((dep) => dep.name),
             })
@@ -269,7 +269,7 @@ fetchData();
             await executeFunction()
           } else if (file.language === "html") {
             // HTML代码直接返回
-            logs.push(file.content)
+            logs.push(file.content || "")
           } else {
             throw new Error(`不支持的语言: ${file.language}`)
           }

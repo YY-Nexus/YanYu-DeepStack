@@ -1,14 +1,61 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Arial, Helvetica, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 @layer utilities {
   .text-balance {
-    text-wrap: balance;
+    /* 兼容性回退写法 */
+    overflow-wrap: break-word;
+    word-break: break-word;
+    /* 新浏览器支持 */
+    @supports (text-wrap: balance) {
+      text-wrap: balance;
+    }
+  }
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 10px rgba(165,127,254,0.6);
+  }
+  .card-hover {
+    transition: all 0.3s;
+  }
+  .card-hover:hover {
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+    transform: translateY(-0.25rem);
+  }
+  .btn-gradient {
+    /* @apply font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-300; */
+    font-weight: 500;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s;
+  }
+  .btn-gradient:hover {
+    box-shadow: 0 10px 15px rgba(0,0,0,0.15);
+  }
+  .gradient-rotate {
+    background: linear-gradient(90deg, #698DF6, #A57FFE, #698DF6 80%);
+    background-size: 200% 200%;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: 0 0 10px rgba(165,127,254,0.6);
+    animation: glow-rotate 10s linear infinite;
+    transition: animation-duration 0.3s, transform 0.3s;
+    display: inline-block;
+  }
+  .gradient-rotate:hover {
+    animation-duration: 5s;
+    transform: scale(1.03);
+  }
+  @keyframes glow-rotate {
+    0% {
+      background-position: 0% 50%;
+      transform: rotate(0deg);
+    }
+    100% {
+      background-position: 100% 50%;
+      transform: rotate(360deg);
+    }
   }
 }
 
@@ -86,9 +133,14 @@ body {
 
 @layer base {
   * {
-    @apply border-border;
+    /* @apply border-border; 替换为原生CSS写法 */
+    border-color: hsl(var(--border));
   }
   body {
-    @apply bg-background text-foreground;
+    /* @apply bg-background text-foreground; 替换为原生CSS写法 */
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
+
+

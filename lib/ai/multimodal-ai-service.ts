@@ -291,11 +291,11 @@ export class MultimodalAIService {
       const mergedOptions = { ...defaultOptions, ...options }
 
       // 验证选项
-      if (!model.outputResolutions.includes(mergedOptions.size)) {
+      if (mergedOptions.size && !model.outputResolutions.includes(mergedOptions.size)) {
         throw new Error(`模型 ${modelId} 不支持分辨率 ${mergedOptions.size}`)
       }
 
-      if (!model.outputFormats.includes(mergedOptions.format)) {
+      if (mergedOptions.format && !model.outputFormats.includes(mergedOptions.format)) {
         throw new Error(`模型 ${modelId} 不支持格式 ${mergedOptions.format}`)
       }
 
@@ -309,8 +309,8 @@ export class MultimodalAIService {
             url: `https://placeholder.pics/${mergedOptions.size}?text=${encodeURIComponent(
               `${model.name} 生成的图像`,
             )}`,
-            format: mergedOptions.format,
-            size: mergedOptions.size,
+            format: mergedOptions.format || "png",
+            size: mergedOptions.size || "512x512",
           },
         ],
         model: modelId,
@@ -358,8 +358,9 @@ export class MultimodalAIService {
       const mergedOptions = { ...defaultOptions, ...options }
 
       // 验证选项
-      if (!model.supportedLanguages.includes(mergedOptions.language)) {
-        throw new Error(`模型 ${modelId} 不支持语言 ${mergedOptions.language}`)
+      const language = mergedOptions.language || "zh";
+      if (model.supportedLanguages && !model.supportedLanguages.includes(language)) {
+        throw new Error(`模型 ${modelId} 不支持语言 ${language}`)
       }
 
       // 模拟API调用
@@ -368,7 +369,7 @@ export class MultimodalAIService {
       // 模拟生成结果
       const result: SpeechToTextResult = {
         text: "这是从音频文件转录的示例文本。",
-        language: mergedOptions.language,
+        language: mergedOptions.language || "zh",
         duration: 15.5, // 秒
         model: modelId,
         segments: [
@@ -397,7 +398,10 @@ export class MultimodalAIService {
   public async textToSpeech(
     text: string,
     modelId = "tts-1",
-    options: TextToSpeechOptions = {},
+    options: TextToSpeechOptions = {
+      voice: "alloy",
+      format: "mp3"
+    },
   ): Promise<TextToSpeechResult> {
     try {
       const model = this.audioModels.get(modelId)
@@ -410,8 +414,8 @@ export class MultimodalAIService {
       }
 
       // 验证输入
-      if (!text || text.length > model.maxTextLength) {
-        throw new Error(`文本长度必须在1到${model.maxTextLength}字符之间`)
+      if (!text || (model.maxTextLength && text.length > model.maxTextLength)) {
+        throw new Error(`文本长度必须在1到${model.maxTextLength || 5000}字符之间`)
       }
 
       // 设置默认选项
@@ -424,11 +428,11 @@ export class MultimodalAIService {
       const mergedOptions = { ...defaultOptions, ...options }
 
       // 验证选项
-      if (!model.voices.includes(mergedOptions.voice)) {
+      if (model.voices && !model.voices.includes(mergedOptions.voice)) {
         throw new Error(`模型 ${modelId} 不支持声音 ${mergedOptions.voice}`)
       }
 
-      if (!model.outputFormats.includes(mergedOptions.format)) {
+      if (model.outputFormats && !model.outputFormats.includes(mergedOptions.format)) {
         throw new Error(`模型 ${modelId} 不支持格式 ${mergedOptions.format}`)
       }
 
@@ -450,11 +454,69 @@ export class MultimodalAIService {
     }
   }
 
+  // 图像分析
+  public async processImage(
+    file: File,
+    prompt: string,
+    modelId = "gpt-4o"
+  ): Promise<{ analysis: string; confidence: number }> {
+    try {
+      // 验证文件格式和大小
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      if (!fileExtension || !this.config.imageProcessing.supportedFormats.includes(fileExtension)) {
+        throw new Error(`不支持的图像格式: ${fileExtension}`);
+      }
+      
+      if (file.size > this.config.imageProcessing.maxImageSize) {
+        throw new Error(`图像大小超过限制: ${this.config.imageProcessing.maxImageSize / (1024 * 1024)}MB`);
+      }
+      
+      // 模拟API调用
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      
+      // 模拟返回结果
+      return {
+        analysis: `这是一个模拟的图像分析结果。图像名称: ${file.name}, 提示词: ${prompt}`,
+        confidence: 0.95
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // 语音识别
+  public async transcribeAudio(
+    audioBlob: Blob,
+    task = "transcribe",
+    modelId = "whisper-large-v3"
+  ): Promise<{ transcription: string; duration: number; confidence: number }> {
+    try {
+      // 验证文件格式
+      // 这里简化处理，实际应用中应该检查文件类型
+      
+      // 模拟API调用
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      
+      // 模拟返回结果
+      return {
+        transcription: "这是一段模拟的语音识别文本结果。",
+        duration: 5.2,
+        confidence: 0.98
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // 视频生成
   public async generateVideo(
     prompt: string,
     modelId = "pika-1",
-    options: VideoGenerationOptions = {},
+    options: VideoGenerationOptions = {
+      duration: 5,
+      resolution: "720p",
+      format: "mp4"
+    },
   ): Promise<VideoGenerationResult> {
     try {
       const model = this.videoModels.get(modelId)

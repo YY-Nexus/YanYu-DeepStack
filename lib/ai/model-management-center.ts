@@ -93,7 +93,8 @@ export class ModelManagementCenter {
     } catch (error) {
       console.error("获取Ollama模型列表失败:", error)
       // 如果获取失败，可能是Ollama服务未启动，标记所有Ollama模型为未知状态
-      for (const [id, model] of this.models.entries()) {
+      // 使用Array.from将Map转换为数组，避免使用MapIterator
+      for (const [id, model] of Array.from(this.models.entries())) {
         if (model.provider === "ollama") {
           this.models.set(id, { ...model, status: "unknown" })
         }
@@ -189,7 +190,7 @@ export class ModelManagementCenter {
   }
 
   // 下载模型
-  public async downloadModel(modelId: string): Promise<ModelTask> {
+  public async downloadModel(modelId: string, onProgress?: (progress: number, status: string) => void): Promise<ModelTask> {
     // 检查是否已存在下载任务
     let task = this.modelTasks.get(modelId)
     if (task && ["pending", "downloading"].includes(task.status)) {
@@ -214,15 +215,18 @@ export class ModelManagementCenter {
     if (model) {
       this.models.set(modelId, { ...model, status: "downloading" })
     }
+    
+    // 调用进度回调
+    onProgress?.(0, '准备下载...')
 
     // 开始下载
-    this.startModelDownload(modelId, task)
+    this.startModelDownload(modelId, task, onProgress)
 
     return task
   }
 
   // 开始模型下载
-  private async startModelDownload(modelId: string, task: ModelTask): Promise<void> {
+  private async startModelDownload(modelId: string, task: ModelTask, onProgress?: (progress: number, status: string) => void): Promise<void> {
     try {
       // 更新任务状态
       task.status = "downloading"
@@ -230,6 +234,9 @@ export class ModelManagementCenter {
       this.modelTasks.set(modelId, { ...task })
 
       console.log(`🔄 开始下载模型: ${modelId}`)
+      
+      // 调用进度回调
+      onProgress?.(0, `开始下载模型: ${modelId}`)
 
       // 调用Ollama API下载模型
       const response = await fetch(`${this.config.ollamaUrl}/api/pull`, {
@@ -288,6 +295,9 @@ export class ModelManagementCenter {
                   downloadProgress: progress,
                 })
               }
+              
+              // 调用进度回调
+              onProgress?.(progress, `下载中... ${progress}%`)
             }
           } catch (e) {
             // 忽略解析错误
@@ -305,6 +315,9 @@ export class ModelManagementCenter {
       await this.fetchOllamaModels() // 重新获取模型列表以更新状态
 
       console.log(`✅ 模型下载完成: ${modelId}`)
+      
+      // 完成回调
+      onProgress?.(100, '下载完成')
     } catch (error) {
       console.error(`❌ 模型下载失败: ${modelId}`, error)
 
@@ -319,6 +332,9 @@ export class ModelManagementCenter {
       if (model) {
         this.models.set(modelId, { ...model, status: "download_failed" })
       }
+      
+      // 失败回调
+      onProgress?.(0, `下载失败: ${error instanceof Error ? error.message : '未知错误'}`)
     }
   }
 
@@ -369,7 +385,8 @@ export class ModelManagementCenter {
 
   // 获取模型任务详情
   public getModelTask(taskId: string): ModelTask | undefined {
-    for (const task of this.modelTasks.values()) {
+    // 使用Array.from将Map转换为数组，避免使用MapIterator
+    for (const task of Array.from(this.modelTasks.values())) {
       if (task.id === taskId) {
         return task
       }
@@ -395,6 +412,7 @@ export class ModelManagementCenter {
         ollama: models.filter((m) => m.provider === "ollama").length,
         openai: models.filter((m) => m.provider === "openai").length,
         anthropic: models.filter((m) => m.provider === "anthropic").length,
+        google: models.filter((m) => m.provider === "google").length,
       },
       totalSize: models.reduce((sum, m) => sum + (m.size || 0), 0),
     }

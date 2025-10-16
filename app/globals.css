@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 自定义主题色彩 */
+/* 自定义主题色彩（可结合 Tailwind 配置的颜色） */
 :root {
   --coral-pink: #ff6b6b;
   --mint-green: #4ecdc4;
@@ -14,6 +14,7 @@
 
 /* 毛玻璃效果 */
 .glass-effect {
+  -webkit-backdrop-filter: blur(10px); /* 兼容Safari */
   backdrop-filter: blur(10px);
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -21,7 +22,9 @@
 
 /* 悬浮动效基础样式 */
 .hover-lift {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .hover-lift:hover {
@@ -38,3 +41,24 @@
 .card-3d:hover {
   transform: rotateX(5deg) rotateY(5deg);
 }
+
+/* 标题静态渐变样式（如果需要动态旋变可调整，这里先静态示例） */
+.gradient-rotate {
+  background: linear-gradient(
+    90deg,
+    var(--coral-pink),
+    var(--mint-green),
+    var(--sky-blue),
+    var(--lemon-yellow)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* 若要静态渐变，去掉动画；若要旋变动画，保留下面动画定义 */
+  /* animation: gradientRotate 8s linear infinite; */
+}
+
+/* @keyframes gradientRotate {
+  0% { background-position: 0 0; }
+  100% { background-position: 100% 0; }
+} */

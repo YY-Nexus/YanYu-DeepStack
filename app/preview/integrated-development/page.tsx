@@ -13,7 +13,7 @@ import EnhancedCodeSandbox from "@/components/preview/enhanced-code-sandbox"
 import CollaborativeEditor from "@/components/preview/collaborative-editor"
 import ProjectIntegrationPanel from "@/components/preview/project-integration-panel"
 import TemplateSystemIntegration from "@/components/preview/template-system-integration"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/lib/utils/client-toast"
 
 export default function IntegratedDevelopmentPage() {
   const [activeTab, setActiveTab] = useState("generator")

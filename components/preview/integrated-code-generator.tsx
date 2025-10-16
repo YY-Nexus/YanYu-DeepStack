@@ -33,7 +33,7 @@ export default function IntegratedCodeGenerator() {
   const [temperature, setTemperature] = useState([0.7])
   const [maxTokens, setMaxTokens] = useState([2048])
   const [includeComments, setIncludeComments] = useState(true)
-  const [optimizeFor, setOptimizeFor] = useState<"readability" | "performance" | "security">("readability")
+  const [optimizeFor, setOptimizeFor] = useState<"readability" | "performance" | "security" | "balanced"> ("readability")
 
   // Hooks
   const {
@@ -144,7 +144,8 @@ export default function IntegratedCodeGenerator() {
         language,
         framework,
         includeComments,
-        optimizeFor,
+        // 只传递generateCode函数支持的值
+        optimizeFor: optimizeFor === "balanced" ? undefined : optimizeFor,
       })
 
       if (result.success) {

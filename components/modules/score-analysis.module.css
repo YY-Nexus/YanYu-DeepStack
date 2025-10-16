@@ -1,0 +1,21 @@
+.min-h-4px {
+  min-height: 4px;
+}
+
+.progressBar {
+  width: 0;
+  transition: width 0.5s;
+}
+
+.progressBar[data-width] {
+  width: attr(data-width percentage);
+}
+
+.trendBar {
+  height: 10px;
+  transition: height 0.3s;
+}
+
+.trendBar[data-bar-height] {
+  height: attr(data-bar-height px);
+}

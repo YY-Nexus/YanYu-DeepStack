@@ -26,7 +26,7 @@ export default function MarkdownPreview({ content, className = "" }: MarkdownPre
 
     // 处理代码块 (\`\`\`)
     html = html.replace(/```(\w+)?\n([\s\S]*?)```/gim, (match, lang, code) => {
-      return `<pre class="bg-gray-900 text-green-400 p-4 rounded-lg my-4 overflow-x-auto"><code class="font-mono text-sm">${code.trim()}</code></pre>`
+      return `<pre class="bg-gray-900 text-green-400 p-4 rounded-lg my-4 overflow-x-auto border border-gray-700"><code class="font-mono text-sm">${code.trim()}</code></pre>`
     })
 
     // 处理标题

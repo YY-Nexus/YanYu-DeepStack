@@ -300,7 +300,18 @@ export const useModelCodeIntegration = create<ModelCodeIntegrationState>((set, g
 function extractCodeFromResponse(text: string): string {
   // 尝试提取代码块（使用```包围的内容）
   const codeBlockRegex = /```(?:\w+)?\s*([\s\S]*?)```/g
-  const matches = [...text.matchAll(codeBlockRegex)]
+  
+  // 使用传统的方式收集匹配项，避免使用展开操作符
+  let match: RegExpExecArray | null
+  const matches: RegExpExecArray[] = []
+  
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    matches.push(match)
+    // 防止零宽度匹配导致的无限循环
+    if (match.index === codeBlockRegex.lastIndex) {
+      codeBlockRegex.lastIndex++
+    }
+  }
 
   if (matches.length > 0) {
     // 提取所有代码块并合并
@@ -334,16 +345,11 @@ export function initializeModelCodeIntegration() {
     // 加载上次选择的模型
     const savedModelId = localStorage.getItem("yanyu-selected-code-model")
     if (savedModelId) {
-      // 在模型加载完成后再设置选择的模型
-      const unsubscribe = useModelCodeIntegration.subscribe(
-        (state) => state.availableModels,
-        (models) => {
-          if (models.length > 0 && models.some((m) => m.id === savedModelId)) {
-            useModelCodeIntegration.getState().selectModel(savedModelId)
-            unsubscribe()
-          }
-        },
-      )
+      // 尝试立即设置模型，如果模型已经加载
+      const state = useModelCodeIntegration.getState()
+      if (state.availableModels.length > 0 && state.availableModels.some((m) => m.id === savedModelId)) {
+        state.selectModel(savedModelId)
+      }
     }
   } catch (e) {
     console.error("加载历史记录失败:", e)

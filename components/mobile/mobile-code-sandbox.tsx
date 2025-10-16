@@ -174,7 +174,8 @@ fetchData().then(result => {
       let error: string | undefined
 
       // 模拟代码执行
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const delay = 1500;
+      await new Promise((resolve) => window.setTimeout(resolve, delay))
 
       // 模拟执行结果
       if (currentFile.language === "javascript") {

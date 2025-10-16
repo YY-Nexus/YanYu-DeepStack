@@ -127,7 +127,7 @@ class EnvironmentValidator {
   // 主要验证流程
   public async validate(): Promise<void> {
     console.log("🔍 验证环境变量配置")
-    console.log("=" * 50)
+    console.log("=".repeat(50))
 
     const results: ValidationResult[] = []
 
@@ -205,7 +205,7 @@ class EnvironmentValidator {
     const requiredTotal = coreResults.length
 
     console.log("\n📊 配置统计:")
-    console.log("=" * 30)
+    console.log("=".repeat(30))
     console.log(`必需配置: ${requiredConfigured}/${requiredTotal}`)
     console.log(`可选配置: ${optionalConfigured}/${optionalConfigs.length}`)
 

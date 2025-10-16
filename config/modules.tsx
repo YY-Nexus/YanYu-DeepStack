@@ -1,4 +1,4 @@
-import type { ModuleConfig } from "@/types/modules"
+import type { ModuleConfig } from "../types/modules"
 
 export const moduleConfigs: ModuleConfig[] = [
   {

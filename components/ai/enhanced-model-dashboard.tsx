@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import {
   enhancedOllamaService,
   type EnhancedOllamaModel,
   type DownloadTask,
   type ModelStatistics,
-} from "@/lib/ai/enhanced-ollama-service"
+} from "@/lib/ai/enhanced-ollama-service";
 import {
   Download,
   Check,
@@ -22,214 +22,287 @@ import {
   Search,
   Eye,
   Zap,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ModelPreviewModal } from "./model-preview-modal"
-import { ModelSearchFilters, type ModelFilters } from "./model-search-filters"
-import { ModelBenchmark } from "./model-benchmark"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ModelPreviewModal } from "./model-preview-modal";
+import { ModelSearchFilters, type ModelFilters } from "./model-search-filters";
+import { ModelBenchmark } from "./model-benchmark";
+
+// 扩展 ModelStatistics 类型定义
+interface ExtendedModelStatistics extends ModelStatistics {
+  totalModels: number;
+  downloadedModels: number;
+  readyModels: number;
+  downloadingModels: number;
+  totalSize: number;
+}
+
+// 扩展 EnhancedOllamaModel 类型定义
+interface ExtendedEnhancedOllamaModel extends EnhancedOllamaModel {
+  description?: string;
+  downloadProgress?: number;
+}
 
 export default function EnhancedModelDashboard() {
-  const [models, setModels] = useState<EnhancedOllamaModel[]>([])
-  const [downloads, setDownloads] = useState<DownloadTask[]>([])
-  const [stats, setStats] = useState<ModelStatistics | null>(null)
-  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "reconnecting">(
-    "disconnected",
-  )
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("all")
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [previewModel, setPreviewModel] = useState<EnhancedOllamaModel | null>(null)
-  const [showBenchmark, setShowBenchmark] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<string>("")
+  const [models, setModels] = useState<ExtendedEnhancedOllamaModel[]>([]);
+  const [downloads, setDownloads] = useState<DownloadTask[]>([]);
+  const [stats, setStats] = useState<ExtendedModelStatistics | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<
+    "connected" | "disconnected" | "reconnecting"
+  >("disconnected");
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [previewModel, setPreviewModel] =
+    useState<ExtendedEnhancedOllamaModel | null>(null);
+  const [showBenchmark, setShowBenchmark] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>("");
   const [filters, setFilters] = useState<ModelFilters>({
     search: "",
     types: [],
     status: [],
     parameters: [],
     quantization: [],
-  })
+  });
 
   useEffect(() => {
     // 初始化数据
-    loadData()
+    loadData();
 
     // 监听服务事件
     const handleServiceReady = () => {
-      console.log("🎉 Enhanced Ollama服务就绪")
-      loadData()
-    }
+      console.log("🎉 Enhanced Ollama服务就绪");
+      loadData();
+    };
 
     const handleConnectionEstablished = () => {
-      setConnectionStatus("connected")
-    }
+      setConnectionStatus("connected");
+    };
 
     const handleConnectionLost = () => {
-      setConnectionStatus("disconnected")
-    }
+      setConnectionStatus("disconnected");
+    };
 
     const handleModelUpdated = (model: EnhancedOllamaModel) => {
-      setModels((prev) => prev.map((m) => (m.id === model.id ? model : m)))
-    }
+      setModels((prev) => prev.map((m) => (m.id === model.id ? model : m)));
+    };
 
     const handleDownloadProgress = (progress: any) => {
-      console.log(`📥 下载进度: ${progress.modelId} - ${progress.progress}%`)
-    }
+      console.log(`📥 下载进度: ${progress.modelId} - ${progress.progress}%`);
+    };
 
     const handleDownloadCompleted = (task: DownloadTask) => {
-      console.log(`✅ 下载完成: ${task.modelId}`)
-      loadData()
-    }
+      console.log(`✅ 下载完成: ${task.modelId}`);
+      loadData();
+    };
 
     const handleDownloadFailed = (task: DownloadTask) => {
-      console.error(`❌ 下载失败: ${task.modelId} - ${task.error}`)
-      loadData()
-    }
+      console.error(`❌ 下载失败: ${task.modelId} - ${task.error}`);
+      loadData();
+    };
 
     // 注册事件监听器
-    enhancedOllamaService.on("service:ready", handleServiceReady)
-    enhancedOllamaService.on("connection:established", handleConnectionEstablished)
-    enhancedOllamaService.on("connection:lost", handleConnectionLost)
-    enhancedOllamaService.on("model:updated", handleModelUpdated)
-    enhancedOllamaService.on("download:progress", handleDownloadProgress)
-    enhancedOllamaService.on("download:completed", handleDownloadCompleted)
-    enhancedOllamaService.on("download:failed", handleDownloadFailed)
+    enhancedOllamaService.on("service:ready", handleServiceReady);
+    enhancedOllamaService.on(
+      "connection:established",
+      handleConnectionEstablished
+    );
+    enhancedOllamaService.on("connection:lost", handleConnectionLost);
+    enhancedOllamaService.on("model:updated", handleModelUpdated);
+    enhancedOllamaService.on("download:progress", handleDownloadProgress);
+    enhancedOllamaService.on("download:completed", handleDownloadCompleted);
+    enhancedOllamaService.on("download:failed", handleDownloadFailed);
 
     // 定期刷新数据
-    const interval = setInterval(loadData, 5000)
+    const interval = setInterval(loadData, 5000);
 
     return () => {
       // 清理事件监听器
-      enhancedOllamaService.off("service:ready", handleServiceReady)
-      enhancedOllamaService.off("connection:established", handleConnectionEstablished)
-      enhancedOllamaService.off("connection:lost", handleConnectionLost)
-      enhancedOllamaService.off("model:updated", handleModelUpdated)
-      enhancedOllamaService.off("download:progress", handleDownloadProgress)
-      enhancedOllamaService.off("download:completed", handleDownloadCompleted)
-      enhancedOllamaService.off("download:failed", handleDownloadFailed)
+      enhancedOllamaService.off("service:ready", handleServiceReady);
+      enhancedOllamaService.off(
+        "connection:established",
+        handleConnectionEstablished
+      );
+      enhancedOllamaService.off("connection:lost", handleConnectionLost);
+      enhancedOllamaService.off("model:updated", handleModelUpdated);
+      enhancedOllamaService.off("download:progress", handleDownloadProgress);
+      enhancedOllamaService.off("download:completed", handleDownloadCompleted);
+      enhancedOllamaService.off("download:failed", handleDownloadFailed);
 
-      clearInterval(interval)
-    }
-  }, [])
+      clearInterval(interval);
+    };
+  }, []);
 
   const loadData = async () => {
     try {
-      const allModels = enhancedOllamaService.getAllModels()
-      const activeDownloads = enhancedOllamaService.getActiveDownloads()
-      const queuedDownloads = enhancedOllamaService.getDownloadQueue()
-      const statistics = enhancedOllamaService.getModelStatistics()
-      const status = enhancedOllamaService.getConnectionStatus()
+      const allModels = enhancedOllamaService.getAllModels();
+      const activeDownloads = enhancedOllamaService.getActiveDownloads();
+      const queuedDownloads = enhancedOllamaService.getDownloadQueue();
+      const statistics = enhancedOllamaService.getModelStatistics();
+      const status = enhancedOllamaService.getConnectionStatus();
 
-      setModels(allModels)
-      setDownloads([...activeDownloads, ...queuedDownloads])
-      setStats(statistics)
-      setConnectionStatus(status)
-      setLoading(false)
+      // 扩展模型数据以包含缺少的属性
+      const extendedModels: ExtendedEnhancedOllamaModel[] = allModels.map(
+        (model) => {
+          // 查找下载进度
+          const downloadTask = [...activeDownloads, ...queuedDownloads].find(
+            (task) => task.modelId === model.id
+          );
+          return {
+            ...model,
+            // description 字段只用 name/type 生成，避免访问不存在的 model.description
+            description: `${model.name} - ${model.type} 模型`,
+            downloadProgress: downloadTask ? downloadTask.progress : 0,
+          };
+        }
+      );
+
+      // 扩展统计数据
+      const extendedStats: ExtendedModelStatistics = {
+        ...statistics,
+        totalModels: allModels.length,
+        downloadedModels: allModels.filter((m) => m.status === "ready").length,
+        readyModels: allModels.filter((m) => m.status === "ready").length,
+        downloadingModels: allModels.filter((m) => m.status === "downloading")
+          .length,
+        totalSize: allModels.reduce((acc, model) => acc + (model.size || 0), 0),
+      };
+
+      setModels(extendedModels);
+      setDownloads([...activeDownloads, ...queuedDownloads]);
+      setStats(extendedStats);
+      setConnectionStatus(status);
+      setLoading(false);
     } catch (error) {
-      console.error("加载数据失败:", error)
-      setLoading(false)
+      console.error("加载数据失败:", error);
+      setLoading(false);
     }
-  }
+  };
 
   const handleRefresh = async () => {
-    setIsRefreshing(true)
-    await loadData()
-    setTimeout(() => setIsRefreshing(false), 500)
-  }
+    setIsRefreshing(true);
+    await loadData();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   const handleDownload = async (modelId: string) => {
     try {
-      await enhancedOllamaService.downloadModel(modelId)
+      await enhancedOllamaService.downloadModel(modelId);
     } catch (error) {
-      console.error("下载模型失败:", error)
+      console.error("下载模型失败:", error);
     }
-  }
+  };
 
   const handleDelete = async (modelId: string) => {
     if (confirm(`确定要删除模型 ${modelId} 吗？`)) {
       try {
-        await enhancedOllamaService.deleteModel(modelId)
-        await loadData()
+        await enhancedOllamaService.deleteModel(modelId);
+        await loadData();
       } catch (error) {
-        console.error("删除模型失败:", error)
+        console.error("删除模型失败:", error);
       }
     }
-  }
+  };
 
   const handlePreview = (model: EnhancedOllamaModel) => {
-    setPreviewModel(model)
-  }
+    setPreviewModel(model);
+  };
 
   const getFilteredModels = () => {
-    let filteredModels = models
+    let filteredModels = models;
 
     // 根据标签过滤
     if (activeTab === "ready") {
-      filteredModels = filteredModels.filter((m) => m.status === "ready")
+      filteredModels = filteredModels.filter((m) => m.status === "ready");
     } else if (activeTab === "downloading") {
-      filteredModels = filteredModels.filter((m) => ["downloading", "queued"].includes(m.status))
+      filteredModels = filteredModels.filter((m) =>
+        ["downloading", "queued"].includes(m.status)
+      );
     } else if (activeTab === "chat") {
-      filteredModels = filteredModels.filter((m) => m.type === "chat")
+      filteredModels = filteredModels.filter((m) => m.type === "chat");
     } else if (activeTab === "code") {
-      filteredModels = filteredModels.filter((m) => m.type === "code")
+      filteredModels = filteredModels.filter((m) => m.type === "code");
     } else if (activeTab === "multimodal") {
-      filteredModels = filteredModels.filter((m) => m.type === "multimodal")
+      filteredModels = filteredModels.filter((m) => m.type === "multimodal");
     }
 
     // 应用搜索过滤器
     if (filters.search) {
-      const searchLower = filters.search.toLowerCase()
+      const searchLower = filters.search.toLowerCase();
       filteredModels = filteredModels.filter(
-        (m) => m.name.toLowerCase().includes(searchLower) || m.id.toLowerCase().includes(searchLower),
-      )
+        (m) =>
+          m.name.toLowerCase().includes(searchLower) ||
+          m.id.toLowerCase().includes(searchLower)
+      );
     }
 
     // 应用类型过滤器
     if (filters.types.length > 0) {
-      filteredModels = filteredModels.filter((m) => filters.types.includes(m.type))
+      filteredModels = filteredModels.filter((m) =>
+        filters.types.includes(m.type)
+      );
     }
 
     // 应用状态过滤器
     if (filters.status.length > 0) {
-      filteredModels = filteredModels.filter((m) => filters.status.includes(m.status))
+      filteredModels = filteredModels.filter((m) =>
+        filters.status.includes(m.status)
+      );
     }
 
     // 应用参数过滤器
     if (filters.parameters.length > 0) {
-      filteredModels = filteredModels.filter((m) => filters.parameters.includes(m.parameters))
+      filteredModels = filteredModels.filter((m) =>
+        filters.parameters.includes(m.parameters)
+      );
     }
 
     // 应用量化过滤器
     if (filters.quantization.length > 0) {
-      filteredModels = filteredModels.filter((m) => filters.quantization.includes(m.quantization))
+      filteredModels = filteredModels.filter((m) =>
+        filters.quantization.includes(m.quantization)
+      );
     }
 
-    return filteredModels
-  }
+    return filteredModels;
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "ready":
-        return <Check className="h-4 w-4 text-green-500" />
+        return <Check className="h-4 w-4 text-green-500" />;
       case "busy":
-        return <Activity className="h-4 w-4 text-blue-500 animate-pulse" />
+        return <Activity className="h-4 w-4 text-blue-500 animate-pulse" />;
       case "downloading":
-        return <Download className="h-4 w-4 text-blue-500 animate-bounce" />
+        return <Download className="h-4 w-4 text-blue-500 animate-bounce" />;
       case "queued":
-        return <Clock className="h-4 w-4 text-yellow-500" />
+        return <Clock className="h-4 w-4 text-yellow-500" />;
       case "not_downloaded":
-        return <HardDrive className="h-4 w-4 text-gray-500" />
+        return <HardDrive className="h-4 w-4 text-gray-500" />;
       case "download_failed":
-        return <AlertCircle className="h-4 w-4 text-red-500" />
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-500" />
+        return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
-  }
+  };
 
   const getStatusText = (status: string) => {
     const statusMap: Record<string, string> = {
@@ -239,22 +312,22 @@ export default function EnhancedModelDashboard() {
       queued: "队列中",
       not_downloaded: "未下载",
       download_failed: "下载失败",
-    }
-    return statusMap[status] || "未知"
-  }
+    };
+    return statusMap[status] || "未知";
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "chat":
-        return <MessageSquare className="h-4 w-4" />
+        return <MessageSquare className="h-4 w-4" />;
       case "code":
-        return <Code className="h-4 w-4" />
+        return <Code className="h-4 w-4" />;
       case "multimodal":
-        return <Eye className="h-4 w-4" />
+        return <Eye className="h-4 w-4" />;
       default:
-        return <Zap className="h-4 w-4" />
+        return <Zap className="h-4 w-4" />;
     }
-  }
+  };
 
   const getTypeText = (type: string) => {
     const typeMap: Record<string, string> = {
@@ -262,41 +335,43 @@ export default function EnhancedModelDashboard() {
       code: "代码",
       multimodal: "多模态",
       embedding: "嵌入",
-    }
-    return typeMap[type] || type
-  }
+    };
+    return typeMap[type] || type;
+  };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 B"
-    const k = 1024
-    const sizes = ["B", "KB", "MB", "GB", "TB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-  }
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return (
+      Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+    );
+  };
 
   const getConnectionStatusColor = () => {
     switch (connectionStatus) {
       case "connected":
-        return "text-green-500"
+        return "text-green-500";
       case "reconnecting":
-        return "text-yellow-500"
+        return "text-yellow-500";
       default:
-        return "text-red-500"
+        return "text-red-500";
     }
-  }
+  };
 
   const getConnectionStatusText = () => {
     switch (connectionStatus) {
       case "connected":
-        return "已连接"
+        return "已连接";
       case "reconnecting":
-        return "重连中"
+        return "重连中";
       default:
-        return "未连接"
+        return "未连接";
     }
-  }
+  };
 
-  const filteredModels = getFilteredModels()
+  const filteredModels = getFilteredModels();
 
   if (loading) {
     return (
@@ -306,7 +381,7 @@ export default function EnhancedModelDashboard() {
           <p className="text-muted-foreground">加载模型数据中...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -321,11 +396,22 @@ export default function EnhancedModelDashboard() {
           </Badge>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+            />
             刷新
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowBenchmark(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowBenchmark(true)}
+          >
             <Activity className="h-4 w-4 mr-2" />
             性能测试
           </Button>
@@ -342,7 +428,9 @@ export default function EnhancedModelDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.totalModels}</div>
-              <p className="text-xs text-muted-foreground">已下载 {stats.downloadedModels} 个</p>
+              <p className="text-xs text-muted-foreground">
+                已下载 {stats.downloadedModels} 个
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -361,7 +449,9 @@ export default function EnhancedModelDashboard() {
               <Download className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.downloadingModels}</div>
+              <div className="text-2xl font-bold">
+                {stats.downloadingModels}
+              </div>
               <p className="text-xs text-muted-foreground">正在下载</p>
             </CardContent>
           </Card>
@@ -371,7 +461,9 @@ export default function EnhancedModelDashboard() {
               <HardDrive className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatFileSize(stats.totalSize)}</div>
+              <div className="text-2xl font-bold">
+                {formatFileSize(stats.totalSize)}
+              </div>
               <p className="text-xs text-muted-foreground">磁盘占用</p>
             </CardContent>
           </Card>
@@ -386,32 +478,69 @@ export default function EnhancedModelDashboard() {
             <Input
               placeholder="搜索模型..."
               value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value })
+              }
               className="pl-10"
             />
           </div>
         </div>
-        <ModelSearchFilters filters={filters} onFiltersChange={setFilters} />
+        <ModelSearchFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          modelStats={{
+            parameters: Array.from(
+              models.reduce((acc, m) => {
+                if (m.parameters)
+                  acc.set(m.parameters, (acc.get(m.parameters) || 0) + 1);
+                return acc;
+              }, new Map<string, number>())
+            ).map(([name, count]) => ({ name, count })),
+            quantization: Array.from(
+              models.reduce((acc, m) => {
+                if (m.quantization)
+                  acc.set(m.quantization, (acc.get(m.quantization) || 0) + 1);
+                return acc;
+              }, new Map<string, number>())
+            ).map(([name, count]) => ({ name, count })),
+          }}
+        />
       </div>
 
       {/* 标签页 */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="all">全部 ({models.length})</TabsTrigger>
-          <TabsTrigger value="ready">就绪 ({models.filter((m) => m.status === "ready").length})</TabsTrigger>
-          <TabsTrigger value="downloading">
-            下载中 ({models.filter((m) => ["downloading", "queued"].includes(m.status)).length})
+          <TabsTrigger value="ready">
+            就绪 ({models.filter((m) => m.status === "ready").length})
           </TabsTrigger>
-          <TabsTrigger value="chat">对话 ({models.filter((m) => m.type === "chat").length})</TabsTrigger>
-          <TabsTrigger value="code">代码 ({models.filter((m) => m.type === "code").length})</TabsTrigger>
-          <TabsTrigger value="multimodal">多模态 ({models.filter((m) => m.type === "multimodal").length})</TabsTrigger>
+          <TabsTrigger value="downloading">
+            下载中 (
+            {
+              models.filter((m) => ["downloading", "queued"].includes(m.status))
+                .length
+            }
+            )
+          </TabsTrigger>
+          <TabsTrigger value="chat">
+            对话 ({models.filter((m) => m.type === "chat").length})
+          </TabsTrigger>
+          <TabsTrigger value="code">
+            代码 ({models.filter((m) => m.type === "code").length})
+          </TabsTrigger>
+          <TabsTrigger value="multimodal">
+            多模态 ({models.filter((m) => m.type === "multimodal").length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="space-y-4">
           {/* 模型列表 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredModels.map((model) => (
-              <Card key={model.id} className="hover:shadow-md transition-shadow">
+              <Card
+                key={model.id}
+                className="hover:shadow-md transition-shadow"
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-2">
@@ -425,7 +554,9 @@ export default function EnhancedModelDashboard() {
                       </Badge>
                     </div>
                   </div>
-                  <CardDescription className="line-clamp-2">{model.description}</CardDescription>
+                  <CardDescription className="line-clamp-2">
+                    {model.description}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {/* 模型信息 */}
@@ -449,25 +580,37 @@ export default function EnhancedModelDashboard() {
                   </div>
 
                   {/* 下载进度 */}
-                  {model.status === "downloading" && model.downloadProgress !== undefined && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span>下载进度</span>
-                        <span>{model.downloadProgress}%</span>
+                  {model.status === "downloading" &&
+                    model.downloadProgress !== undefined && (
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>下载进度</span>
+                          <span>{model.downloadProgress}%</span>
+                        </div>
+                        <Progress
+                          value={model.downloadProgress}
+                          className="h-2"
+                        />
                       </div>
-                      <Progress value={model.downloadProgress} className="h-2" />
-                    </div>
-                  )}
+                    )}
 
                   {/* 操作按钮 */}
                   <div className="flex items-center justify-between pt-2">
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handlePreview(model)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePreview(model)}
+                      >
                         <Eye className="h-3 w-3 mr-1" />
                         预览
                       </Button>
                       {model.status === "ready" && (
-                        <Button variant="outline" size="sm" onClick={() => setSelectedModel(model.id)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedModel(model.id)}
+                        >
                           <Play className="h-3 w-3 mr-1" />
                           使用
                         </Button>
@@ -475,13 +618,21 @@ export default function EnhancedModelDashboard() {
                     </div>
                     <div className="flex items-center space-x-1">
                       {model.status === "not_downloaded" && (
-                        <Button variant="default" size="sm" onClick={() => handleDownload(model.id)}>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleDownload(model.id)}
+                        >
                           <Download className="h-3 w-3 mr-1" />
                           下载
                         </Button>
                       )}
                       {model.status === "ready" && (
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(model.id)}>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(model.id)}
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       )}
@@ -507,8 +658,8 @@ export default function EnhancedModelDashboard() {
       {previewModel && (
         <ModelPreviewModal
           model={previewModel}
-          open={!!previewModel}
-          onOpenChange={(open) => !open && setPreviewModel(null)}
+          isOpen={!!previewModel}
+          onClose={() => setPreviewModel(null)}
         />
       )}
 
@@ -518,12 +669,16 @@ export default function EnhancedModelDashboard() {
           <DialogContent className="max-w-4xl">
             <DialogHeader>
               <DialogTitle>模型性能测试</DialogTitle>
-              <DialogDescription>测试不同模型的推理性能和质量</DialogDescription>
+              <DialogDescription>
+                测试不同模型的推理性能和质量
+              </DialogDescription>
             </DialogHeader>
-            <ModelBenchmark models={models.filter((m) => m.status === "ready")} />
+            <ModelBenchmark
+              models={models.filter((m) => m.status === "ready")}
+            />
           </DialogContent>
         </Dialog>
       )}
     </div>
-  )
+  );
 }

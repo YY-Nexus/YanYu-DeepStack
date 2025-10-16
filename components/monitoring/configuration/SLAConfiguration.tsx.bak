@@ -1,0 +1,1491 @@
+function SLAConfiguration(): React.ReactNode {
+function SLAConfiguration(): React.ReactNode {
+  // SLA指标列表状态
+  const [slaMetrics, setSlaMetrics] = useState<SLAMetric[]>([
+    {
+      id: 'sla_availability',
+      name: '系统可用性',
+      description: '系统整体可用性SLA',
+      metricName: 'system_availability',
+      currentValue: 99.92,
+      threshold: 99.9,
+      warningThreshold: 99.95,
+      severity: 'critical',
+      unit: '%',
+      complianceRate: 99.92,
+    },
+    {
+      id: 'sla_response_time',
+      name: 'API响应时间',
+      description: '主要API端点的平均响应时间',
+      metricName: 'api_response_time',
+      currentValue: 480,
+      threshold: 500,
+      warningThreshold: 300,
+      severity: 'high',
+      unit: 'ms',
+      complianceRate: 98.7,
+    },
+    {
+      id: 'sla_error_rate',
+      name: '错误率',
+      description: 'API请求的错误率',
+      metricName: 'api_error_rate',
+      currentValue: 0.08,
+      threshold: 0.1,
+      warningThreshold: 0.05,
+      severity: 'high',
+      unit: '%',
+      complianceRate: 99.8,
+    },
+    {
+      id: 'sla_database_performance',
+      name: '数据库性能',
+      description: '数据库查询平均执行时间',
+      metricName: 'database_query_time',
+      currentValue: 95,
+      threshold: 100,
+      warningThreshold: 50,
+      severity: 'medium',
+      unit: 'ms',
+      complianceRate: 99.2,
+    },
+  ]);
+
+  // SLA目标配置状态
+  const [slaTargetConfigs, setSlaTargetConfigs] = useState<SLATargetConfig[]>([
+    {
+      id: 'critical',
+      name: '严重',
+      description: '关键业务指标，必须立即处理',
+      responseTime: 3600, // 1小时
+      resolveTime: 14400, // 4小时
+      escalationPolicy: 'immediate_team_notification',
+      alertChannel: ['email', 'sms', 'slack'],
+      isActive: true,
+    },
+    {
+      id: 'high',
+      name: '高',
+      description: '重要业务指标，需在工作时间内处理',
+      responseTime: 14400, // 4小时
+      resolveTime: 86400, // 24小时
+      escalationPolicy: 'team_notification',
+      alertChannel: ['email', 'slack'],
+      isActive: true,
+    },
+    {
+      id: 'medium',
+      name: '中',
+      description: '一般业务指标，在规定时间内处理',
+      responseTime: 43200, // 12小时
+      resolveTime: 172800, // 48小时
+      escalationPolicy: 'email_notification',
+      alertChannel: ['email'],
+      isActive: true,
+    },
+    {
+      id: 'low',
+      name: '低',
+      description: '非关键指标，下次迭代中处理',
+      responseTime: 86400, // 24小时
+      resolveTime: 604800, // 7天
+      escalationPolicy: 'slack_notification',
+      alertChannel: ['slack'],
+      isActive: true,
+    },
+  ]);
+
+  // 编辑表单状态
+  const [editingMetric, setEditingMetric] = useState<SLAMetricFormData | null>(null);
+  const [editingTarget, setEditingTarget] = useState<SLATargetFormData | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState('metrics');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+  // 获取可用的监控指标
+  const availableMetrics: Array<{ value: string; label: string; unit: string }> = [
+    { value: 'system_availability', label: '系统可用性', unit: '%' },
+    { value: 'api_response_time', label: 'API响应时间', unit: 'ms' },
+    { value: 'api_error_rate', label: 'API错误率', unit: '%' },
+    { value: 'database_query_time', label: '数据库查询时间', unit: 'ms' },
+    { value: 'database_connection_pool', label: '数据库连接池使用率', unit: '%' },
+    { value: 'memory_usage', label: '内存使用率', unit: '%' },
+    { value: 'cpu_usage', label: 'CPU使用率', unit: '%' },
+    { value: 'disk_space', label: '磁盘空间使用', unit: '%' },
+    { value: 'network_traffic', label: '网络流量', unit: 'MB/s' },
+    { value: 'request_rate', label: '请求速率', unit: 'req/s' },
+    { value: 'cache_hit_rate', label: '缓存命中率', unit: '%' },
+    { value: 'queue_depth', label: '队列深度', unit: 'items' },
+  ];
+
+  // 获取可用的告警通道
+  const availableAlertChannels: Array<{ value: string; label: string }> = [
+    { value: 'email', label: '邮件' },
+    { value: 'sms', label: '短信' },
+    { value: 'slack', label: 'Slack' },
+    { value: 'webhook', label: 'Webhook' },
+    { value: 'pagerduty', label: 'PagerDuty' },
+  ];
+
+  // 获取可用的升级策略
+  const availableEscalationPolicies: Array<{ value: string; label: string }> = [
+    { value: 'immediate_team_notification', label: '立即团队通知' },
+    { value: 'team_notification', label: '团队通知' },
+    { value: 'email_notification', label: '邮件通知' },
+    { value: 'slack_notification', label: 'Slack通知' },
+    { value: 'oncall_rotation', label: '轮值人员通知' },
+  ];
+
+  // 加载SLA配置数据
+  useEffect(() => {
+    const loadSLAConfig = async (): Promise<void> => {
+      try {
+        // 这里应该从服务获取实际数据
+        // const metrics = await monitoringIntegrationService.getSLAMetrics();
+        // setSlaMetrics(metrics);
+        
+        // const targets = await monitoringIntegrationService.getSLATargetConfigs();
+        // setSlaTargetConfigs(targets);
+      } catch (error) {
+        console.error('加载SLA配置失败:', error);
+      }
+    };
+
+    loadSLAConfig();
+  }, []);
+
+  // 获取告警通道标签
+  const getAlertChannelLabel = (channel: string): string => {
+    const channelConfig = availableAlertChannels.find(c => c.value === channel);
+    return channelConfig ? channelConfig.label : channel;
+  };
+
+  // 格式化时间（秒转为可读格式）
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${seconds}秒`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}分`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}小时`;
+    return `${Math.floor(seconds / 86400)}天`;
+  };
+
+  // 获取严重性图标
+  const getSeverityIcon = (severity: string): React.ReactNode => {
+    switch (severity) {
+      case 'critical':
+        return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case 'high':
+        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+      case 'medium':
+        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'low':
+        return <AlertTriangle className="h-4 w-4 text-blue-500" />;
+      default:
+        return <AlertTriangle className="h-4 w-4 text-gray-500" />;
+    }
+  };
+  
+  // 渲染指标表格
+  const renderMetricsTable = (): React.ReactNode => {
+        return (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>指标名称</TableHead>
+                <TableHead>描述</TableHead>
+                <TableHead>当前值</TableHead>
+                <TableHead>阈值</TableHead>
+                <TableHead>警告阈值</TableHead>
+                <TableHead>严重程度</TableHead>
+                <TableHead>合规率</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {slaMetrics.map((metric) => (
+                <TableRow key={metric.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {getSeverityIcon(metric.severity)}
+                      <span className="font-medium">{metric.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-xs truncate">{metric.description}</TableCell>
+                  <TableCell>
+                    <div className="font-mono">
+                      {metric.currentValue != null ? `${metric.currentValue}${metric.unit}` : '-'}    
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-mono">{metric.threshold}{metric.unit}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-mono">{metric.warningThreshold}{metric.unit}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className={getSeverityColor(metric.severity)}>
+                      {getSeverityLabel(metric.severity)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-mono">
+                      {metric.complianceRate != null ? `${metric.complianceRate}%` : '-'}    
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => handleEditMetric(metric)}
+                      >
+                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">编辑</span>
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => handleConfirmDelete(metric.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">删除</span>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        );
+      };
+      
+      // 渲染目标配置表格
+      const renderTargetConfigsTable = (): React.ReactNode => {
+        return (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>名称</TableHead>
+                <TableHead>描述</TableHead>
+                <TableHead>响应时间</TableHead>
+                <TableHead>解决时间</TableHead>
+                <TableHead>升级策略</TableHead>
+                <TableHead>告警通道</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {slaTargetConfigs.map((target) => {
+                const policyConfig = availableEscalationPolicies.find(p => p.value === target.escalationPolicy);
+                
+                return (
+                  <TableRow key={target.id}>
+                    <TableCell className="font-medium">{target.name}</TableCell>
+                    <TableCell className="max-w-xs truncate">{target.description}</TableCell>
+                    <TableCell>{formatTime(target.responseTime)}</TableCell>
+                    <TableCell>{formatTime(target.resolveTime)}</TableCell>
+                    <TableCell>{policyConfig ? policyConfig.label : target.escalationPolicy}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {target.alertChannel.map((channel: string) => (
+                          <Badge key={channel} variant="secondary">
+                            {getAlertChannelLabel(channel)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Switch checked={target.isActive} disabled={true} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => handleEditTarget(target)}
+                        >
+                          <Edit className="h-4 w-4" />
+                          <span className="sr-only">编辑</span>
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => handleConfirmDelete(target.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">删除</span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        );
+      };
+      
+      // 渲染编辑指标表单
+      const renderMetricForm = (): React.ReactNode => {
+        if (!editingMetric) return null;
+        
+        const selectedMetric = availableMetrics.find(m => m.value === editingMetric.metricName);
+        
+        return (
+          <Card className="mt-4">
+            <CardHeader className="pb-2">
+              <CardTitle>{editingMetric.isNew ? '创建新指标' : '编辑指标'}</CardTitle>
+              <CardDescription>
+                {editingMetric.isNew ? '定义新的SLA监控指标' : '修改现有指标配置'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="metricName" className="block text-sm font-medium">
+                    指标名称
+                  </label>
+                  <Input
+                    id="metricName"
+                    value={editingMetric.name || ''}
+                    onChange={(e) => setEditingMetric({ ...editingMetric, name: e.target.value })}
+                    placeholder="输入指标名称"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="metricDescription" className="block text-sm font-medium">
+                    描述
+                  </label>
+                  <Input
+                    id="metricDescription"
+                    value={editingMetric.description || ''}
+                    onChange={(e) => setEditingMetric({ ...editingMetric, description: e.target.value })}
+                    placeholder="输入指标描述"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="metricType" className="block text-sm font-medium">
+                    监控指标类型
+                  </label>
+                  <Select
+                    value={editingMetric.metricName || ''}
+                    onValueChange={(value: string) => {
+                      const metric = availableMetrics.find(m => m.value === value);
+                      setEditingMetric({
+                        ...editingMetric,
+                        metricName: value,
+                        unit: metric ? metric.unit : '',
+                      });
+                    }}
+                  >
+                    <SelectTrigger id="metricType">
+                      <SelectValue placeholder="选择指标类型" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMetrics.map((metric) => (
+                        <SelectItem key={metric.value} value={metric.value}>
+                          {metric.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="metricSeverity" className="block text-sm font-medium">
+                    严重程度
+                  </label>
+                  <Select
+                    value={editingMetric.severity || 'medium'}
+                    onValueChange={(value: string) => setEditingMetric({ ...editingMetric, severity: value as any })}
+                  >
+                    <SelectTrigger id="metricSeverity">
+                      <SelectValue placeholder="选择严重程度" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="critical">严重</SelectItem>
+                      <SelectItem value="high">高</SelectItem>
+                      <SelectItem value="medium">中</SelectItem>
+                      <SelectItem value="low">低</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="metricThreshold" className="block text-sm font-medium">
+                    阈值
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="metricThreshold"
+                      type="number"
+                      value={editingMetric.threshold || 0}
+                      onChange={(e) => setEditingMetric({ ...editingMetric, threshold: parseFloat(e.target.value) || 0 })}
+                      placeholder="输入阈值"
+                      className="pl-20"
+                    />
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                      阈值: 
+                    </div>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                      {selectedMetric ? selectedMetric.unit : editingMetric.unit}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="metricWarningThreshold" className="block text-sm font-medium">
+                    警告阈值
+                  </label>
+                  <div className="relative">
+                    <Input
+                      id="metricWarningThreshold"
+                      type="number"
+                      value={editingMetric.warningThreshold || 0}
+                      onChange={(e) => setEditingMetric({ ...editingMetric, warningThreshold: parseFloat(e.target.value) || 0 })}
+                      placeholder="输入警告阈值"
+                      className="pl-20"
+                    />
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-500">
+                      警告: 
+                    </div>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-500">
+                      {selectedMetric ? selectedMetric.unit : editingMetric.unit}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="ghost" onClick={handleCancelEdit} disabled={isSaving}>
+                  取消
+                </Button>
+                <Button onClick={handleSaveMetric} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      保存中...
+                    </>
+                  ) : (
+                    '保存'
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      };
+      
+      // 渲染编辑目标配置表单
+      const renderTargetForm = (): React.ReactNode => {
+        if (!editingTarget) return null;
+        
+        return (
+          <Card className="mt-4">
+            <CardHeader className="pb-2">
+              <CardTitle>{editingTarget.isNew ? '创建新目标配置' : '编辑目标配置'}</CardTitle>
+              <CardDescription>
+                {editingTarget.isNew ? '定义新的SLA目标配置' : '修改现有目标配置'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="targetName" className="block text-sm font-medium">
+                    名称
+                  </label>
+                  <Input
+                    id="targetName"
+                    value={editingTarget.name || ''}
+                    onChange={(e) => setEditingTarget({ ...editingTarget, name: e.target.value })}
+                    placeholder="输入目标名称"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="targetDescription" className="block text-sm font-medium">
+                    描述
+                  </label>
+                  <Input
+                    id="targetDescription"
+                    value={editingTarget.description || ''}
+                    onChange={(e) => setEditingTarget({ ...editingTarget, description: e.target.value })}
+                    placeholder="输入目标描述"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="targetResponseTime" className="block text-sm font-medium">
+                    响应时间 (秒)
+                  </label>
+                  <Input
+                    id="targetResponseTime"
+                    type="number"
+                    value={editingTarget.responseTime || 0}
+                    onChange={(e) => setEditingTarget({ ...editingTarget, responseTime: parseInt(e.target.value) || 0 })}
+                    placeholder="输入响应时间"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="targetResolveTime" className="block text-sm font-medium">
+                    解决时间 (秒)
+                  </label>
+                  <Input
+                    id="targetResolveTime"
+                    type="number"
+                    value={editingTarget.resolveTime || 0}
+                    onChange={(e) => setEditingTarget({ ...editingTarget, resolveTime: parseInt(e.target.value) || 0 })}
+                    placeholder="输入解决时间"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="targetEscalationPolicy" className="block text-sm font-medium">
+                    升级策略
+                  </label>
+                  <Select
+                    value={editingTarget.escalationPolicy || 'email_notification'}
+                    onValueChange={(value: string) => setEditingTarget({ ...editingTarget, escalationPolicy: value })}
+                  >
+                    <SelectTrigger id="targetEscalationPolicy">
+                      <SelectValue placeholder="选择升级策略" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableEscalationPolicies.map((policy) => (
+                        <SelectItem key={policy.value} value={policy.value}>
+                          {policy.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">
+                    状态
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="targetIsActive"
+                      checked={editingTarget.isActive !== false}
+                      onCheckedChange={(checked) => setEditingTarget({ ...editingTarget, isActive: checked })}
+                    />
+                    <label htmlFor="targetIsActive" className="text-sm">
+                      {editingTarget.isActive !== false ? '启用' : '禁用'}
+                    </label>
+                  </div>
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <label className="block text-sm font-medium">
+                    告警通道
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableAlertChannels.map((channel) => {
+                      const isSelected = editingTarget.alertChannel?.includes(channel.value) || false;
+                      
+                      return (
+                        <Badge
+                          key={channel.value}
+                          variant={isSelected ? 'default' : 'outline'}
+                          onClick={() => {
+                            const currentChannels = editingTarget.alertChannel || [];
+                            if (isSelected) {
+                              setEditingTarget({
+                                ...editingTarget,
+                                alertChannel: currentChannels.filter(c => c !== channel.value),
+                              });
+                            } else {
+                              setEditingTarget({
+                                ...editingTarget,
+                                alertChannel: [...currentChannels, channel.value],
+                              });
+                            }
+                          }}
+                          className="cursor-pointer px-3 py-1 text-sm"
+                        >
+                          {channel.label}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="ghost" onClick={handleCancelEdit} disabled={isSaving}>
+                  取消
+                </Button>
+                <Button onClick={handleSaveTarget} disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      保存中...
+                    </>
+                  ) : (
+                    '保存'
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      };
+      
+      // 渲染主页面内容
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">SLA监控配置</h1>
+              <p className="text-muted-foreground mt-1">管理和配置系统的SLA指标和目标</p>
+            </div>
+          </div>
+          
+          {saveSuccess && (
+            <Alert className="bg-green-50 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800">
+              <Check className="h-4 w-4 mr-2" />
+              <AlertTitle>操作成功</AlertTitle>
+              <AlertDescription>配置已成功保存</AlertDescription>
+            </Alert>
+          )}
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="metrics">SLA指标</TabsTrigger>
+              <TabsTrigger value="targets">目标配置</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="metrics" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle>SLA指标列表</CardTitle>
+                    <CardDescription>管理系统的SLA监控指标</CardDescription>
+                  </div>
+                  <Button onClick={handleCreateMetric} disabled={!!editingMetric}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    新建指标
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {renderMetricsTable()}
+                </CardContent>
+              </Card>
+              {renderMetricForm()}
+            </TabsContent>
+            
+            <TabsContent value="targets" className="mt-4 space-y-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle>目标配置列表</CardTitle>
+                    <CardDescription>管理系统的SLA目标配置</CardDescription>
+                  </div>
+                  <Button onClick={handleCreateTarget} disabled={!!editingTarget}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    新建目标配置
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {renderTargetConfigsTable()}
+                </CardContent>
+              </Card>
+              {renderTargetForm()}
+            </TabsContent>
+          </Tabs>
+          
+          {/* 确认删除对话框 */}
+          <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>确认删除</AlertDialogTitle>
+                <AlertDialogDescription>
+                  您确定要删除这个{activeTab === 'metrics' ? '指标' : '目标配置'}吗？此操作不可撤销。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+                  取消
+                </AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={activeTab === 'metrics' ? handleDeleteMetric : handleDeleteTarget}
+                  className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                >
+                  确认删除
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      );
+    };
+
+  // 获取严重性标签
+  const getSeverityLabel = (severity: string): string => {
+    switch (severity) {
+      case 'critical':
+        return '严重';
+      case 'high':
+        return '高';
+      case 'medium':
+        return '中';
+      case 'low':
+        return '低';
+      default:
+        return '未知';
+    }
+  };
+
+  // 处理保存指标
+  const handleSaveMetric = async (): Promise<void> => {
+    if (!editingMetric) return;
+
+    setIsSaving(true);
+    try {
+      // 这里应该调用服务保存数据
+      // await monitoringIntegrationService.updateSLAMetric(editingMetric.id, editingMetric);
+      
+      const updatedMetrics = [...slaMetrics];
+      if (editingMetric.isNew) {
+        // 为新指标生成ID
+        const newMetric: SLAMetric = {
+          id: `sla_${Date.now()}`,
+          name: editingMetric.name || '',
+          description: editingMetric.description || '',
+          metricName: editingMetric.metricName || '',
+          currentValue: 0,
+          threshold: editingMetric.threshold || 0,
+          warningThreshold: editingMetric.warningThreshold || 0,
+          severity: editingMetric.severity || 'medium',
+          unit: editingMetric.unit || '',
+          complianceRate: 100,
+        };
+        updatedMetrics.push(newMetric);
+      } else {
+        // 更新现有指标
+        const index = updatedMetrics.findIndex(m => m.id === editingMetric.id);
+        if (index !== -1) {
+          updatedMetrics[index] = { ...updatedMetrics[index], ...editingMetric };
+        }
+      }
+      
+      setSlaMetrics(updatedMetrics);
+      setEditingMetric(null);
+      setSaveSuccess(true);
+      
+      // 3秒后清除成功提示
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('保存SLA指标失败:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 处理保存目标配置
+  const handleSaveTarget = async (): Promise<void> => {
+    if (!editingTarget) return;
+
+    setIsSaving(true);
+    try {
+      // 这里应该调用服务保存数据
+      // await monitoringIntegrationService.updateSLATargetConfig(editingTarget.id || '', editingTarget);
+      
+      const updatedTargets = [...slaTargetConfigs];
+      if (editingTarget.isNew) {
+        // 为新目标生成ID
+        const newTarget: SLATargetConfig = {
+          id: editingTarget.id || `target_${Date.now()}`,
+          name: editingTarget.name || '',
+          description: editingTarget.description || '',
+          responseTime: editingTarget.responseTime || 0,
+          resolveTime: editingTarget.resolveTime || 0,
+          escalationPolicy: editingTarget.escalationPolicy || 'email_notification',
+          alertChannel: editingTarget.alertChannel || ['email'],
+          isActive: editingTarget.isActive !== false,
+        };
+        updatedTargets.push(newTarget);
+      } else {
+        // 更新现有目标
+        const index = updatedTargets.findIndex(t => t.id === editingTarget.id);
+        if (index !== -1) {
+          updatedTargets[index] = { ...updatedTargets[index], ...editingTarget };
+        }
+      }
+      
+      setSlaTargetConfigs(updatedTargets);
+      setEditingTarget(null);
+      setSaveSuccess(true);
+      
+      // 3秒后清除成功提示
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('保存SLA目标配置失败:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 处理删除指标
+  const handleDeleteMetric = async (): Promise<void> => {
+    if (!itemToDelete) return;
+
+    try {
+      // 这里应该调用服务删除数据
+      // await monitoringIntegrationService.deleteSLAMetric(itemToDelete);
+      
+      const updatedMetrics = slaMetrics.filter(m => m.id !== itemToDelete);
+      setSlaMetrics(updatedMetrics);
+      setItemToDelete(null);
+      setShowConfirmDialog(false);
+      setSaveSuccess(true);
+      
+      // 3秒后清除成功提示
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('删除SLA指标失败:', error);
+    }
+  };
+
+  // 处理删除目标配置
+  const handleDeleteTarget = async (): Promise<void> => {
+    if (!itemToDelete) return;
+
+    try {
+      // 这里应该调用服务删除数据
+      // await monitoringIntegrationService.deleteSLATargetConfig(itemToDelete);
+      
+      const updatedTargets = slaTargetConfigs.filter(t => t.id !== itemToDelete);
+      setSlaTargetConfigs(updatedTargets);
+      setItemToDelete(null);
+      setShowConfirmDialog(false);
+      setSaveSuccess(true);
+      
+      // 3秒后清除成功提示
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (error) {
+      console.error('删除SLA目标配置失败:', error);
+    }
+  };
+
+  // 打开编辑指标表单
+  const handleEditMetric = (metric: SLAMetric): void => {
+    setEditingMetric({ ...metric });
+  };
+
+  // 打开编辑目标配置表单
+  const handleEditTarget = (target: SLATargetConfig): void => {
+    setEditingTarget({ ...target });
+  };
+
+  // 创建新指标
+  const handleCreateMetric = (): void => {
+    setEditingMetric({
+      id: `metric-${Date.now()}`,
+      isNew: true,
+      name: '',
+      description: '',
+      metricName: '',
+      threshold: 0,
+      warningThreshold: 0,
+      severity: 'medium',
+      unit: '',
+      currentValue: 0,
+      complianceRate: 100,
+    });
+  };
+
+  // 创建新目标配置
+  const handleCreateTarget = (): void => {
+    setEditingTarget({
+      isNew: true,
+      id: '',
+      name: '',
+      description: '',
+      responseTime: 3600,
+      resolveTime: 86400,
+      escalationPolicy: 'email_notification',
+      alertChannel: ['email'],
+      isActive: true,
+    });
+  };
+
+  // 取消编辑
+  const handleCancelEdit = (): void => {
+    setEditingMetric(null);
+    setEditingTarget(null);
+  };
+
+  // 处理确认删除
+  const handleConfirmDelete = (id: string): void => {
+    setItemToDelete(id);
+    setShowConfirmDialog(true);
+  };
+
+  // 获取严重性颜色
+  const getSeverityColor = (severity: string): string => {
+    switch (severity) {
+      case 'critical':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200';
+      case 'high':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200';
+      case 'low':
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+    }
+  };
+
+  // 获取严重性标签
+  const getSeverityLabel = (severity: string): string => {
+    switch (severity) {
+      case 'critical':
+        return '严重';
+      case 'high':
+        return '高';
+      case 'medium':
+        return '中';
+      case 'low':
+        return '低';
+      default:
+        return '未知';
+    }
+  };
+
+  // 获取严重性颜色
+  const getSeverityColor = (severity: string): string => {
+    switch (severity) {
+      case 'critical':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
+      case 'high':
+        return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      case 'low':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
+  };
+
+  // 获取告警通道标签 - 使用已定义的函数
+
+  // 渲染SLA指标表格
+  const renderMetricsTable = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>指标名称</TableHead>
+          <TableHead>描述</TableHead>
+          <TableHead>基础指标</TableHead>
+          <TableHead>阈值</TableHead>
+          <TableHead>警告阈值</TableHead>
+          <TableHead>严重性</TableHead>
+          <TableHead>状态</TableHead>
+          <TableHead>操作</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {slaMetrics.map((metric: SLAMetric) => {
+          const isCompliant = metric.currentValue <= metric.threshold;
+          const isWarning = !isCompliant && metric.currentValue <= metric.warningThreshold;
+          
+          return (
+            <TableRow key={metric.id}>
+              <TableCell className="font-medium">{metric.name}</TableCell>
+              <TableCell className="text-sm text-gray-500">{metric.description}</TableCell>
+              <TableCell>
+                <div className="flex items-center">
+                  {availableMetrics.find(m => m.value === metric.metricName)?.label || metric.metricName}
+                </div>
+              </TableCell>
+              <TableCell>{metric.threshold} {metric.unit}</TableCell>
+              <TableCell>{metric.warningThreshold} {metric.unit}</TableCell>
+              <TableCell>
+                <Badge variant="secondary" className={getSeverityColor(metric.severity)}>
+                  {getSeverityLabel(metric.severity)}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge variant="secondary" className={isCompliant ? 'bg-green-100 text-green-800' : isWarning ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}>
+                  {isCompliant ? '达标' : isWarning ? '警告' : '未达标'}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex space-x-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleEditMetric(metric)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleConfirmDelete(metric.id)}>
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+
+  // 渲染SLA目标配置表格
+  const renderTargetsTable = (): React.ReactNode => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>ID</TableHead>
+          <TableHead>名称</TableHead>
+          <TableHead>描述</TableHead>
+          <TableHead>响应时间</TableHead>
+          <TableHead>解决时间</TableHead>
+          <TableHead>升级策略</TableHead>
+          <TableHead>告警通道</TableHead>
+          <TableHead>状态</TableHead>
+          <TableHead>操作</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {slaTargetConfigs.map((target) => (
+          <TableRow key={target.id}>
+            <TableCell className="font-mono text-sm">{target.id}</TableCell>
+            <TableCell className="font-medium">{target.name}</TableCell>
+            <TableCell className="text-sm text-gray-500">{target.description}</TableCell>
+            <TableCell>
+              <div className="flex items-center">
+                <Clock className="h-3 w-3 mr-1 text-gray-500" />
+                {formatTime(target.responseTime)}
+              </div>
+            </TableCell>
+            <TableCell>
+              <div className="flex items-center">
+                <Clock className="h-3 w-3 mr-1 text-gray-500" />
+                {formatTime(target.resolveTime)}
+              </div>
+            </TableCell>
+            <TableCell>
+              {availableEscalationPolicies.find(p => p.value === target.escalationPolicy)?.label || target.escalationPolicy}
+            </TableCell>
+            <TableCell>
+              <div className="flex flex-wrap gap-1">
+                {target.alertChannel.map((channel: string) => (
+              <Badge key={channel} variant="outline" className="text-xs">
+                {getAlertChannelLabel(channel)}
+              </Badge>
+            ))}
+              </div>
+            </TableCell>
+            <TableCell>
+              <Switch checked={target.isActive} onCheckedChange={() => {}} disabled />
+            </TableCell>
+            <TableCell>
+              <div className="flex space-x-2">
+                <Button variant="ghost" size="icon" onClick={() => handleEditTarget(target)}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleConfirmDelete(target.id)}>
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
+  // 渲染指标编辑表单
+  const renderMetricForm = (): React.ReactNode => (
+    <Card className="mb-6">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">
+          {editingMetric?.isNew ? '创建新SLA指标' : '编辑SLA指标'}
+        </CardTitle>
+        <CardDescription>配置指标的名称、阈值和监控规则</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">指标名称 *</label>
+            <Input
+              value={editingMetric?.name || ''}
+              onChange={(e) => editingMetric && setEditingMetric({ ...editingMetric, name: e.target.value })}
+              placeholder="输入指标名称"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">描述</label>
+            <Input
+              value={editingMetric?.description || ''}
+              onChange={(e) => editingMetric && setEditingMetric({ ...editingMetric, description: e.target.value })}
+              placeholder="输入指标描述"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">基础指标 *</label>
+            <Select
+              value={editingMetric?.metricName || ''}
+              onValueChange={(value: string) => {
+                if (!editingMetric) return;
+                setEditingMetric({ ...editingMetric, metricName: value });
+                // 自动设置单位
+                const selectedMetric = availableMetrics.find(m => m.value === value);
+                if (selectedMetric) {
+                  setEditingMetric({ ...editingMetric, metricName: value, unit: selectedMetric.unit });
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="选择基础指标" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableMetrics.map((metric) => (
+                  <SelectItem key={metric.value} value={metric.value}>
+                    {metric.label} ({metric.unit})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">严重性 *</label>
+            <Select
+              value={editingMetric?.severity || 'medium'}
+              onValueChange={(value: string) => editingMetric && setEditingMetric({ ...editingMetric, severity: value as 'critical' | 'high' | 'medium' | 'low' })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="选择严重性" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="critical">严重</SelectItem>
+                <SelectItem value="high">高</SelectItem>
+                <SelectItem value="medium">中</SelectItem>
+                <SelectItem value="low">低</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">阈值 *</label>
+              <span className="text-xs text-gray-500">{editingMetric?.unit}</span>
+            </div>
+            <Input
+              type="number"
+              value={editingMetric?.threshold || ''}
+              onChange={(e) => editingMetric && setEditingMetric({ ...editingMetric, threshold: parseFloat(e.target.value) })}
+              placeholder="输入阈值"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">警告阈值</label>
+              <span className="text-xs text-gray-500">{editingMetric?.unit}</span>
+            </div>
+            <Input
+              type="number"
+              value={editingMetric?.warningThreshold || ''}
+              onChange={(e) => editingMetric && setEditingMetric({ ...editingMetric, warningThreshold: parseFloat(e.target.value) })}
+              placeholder="输入警告阈值"
+            />
+          </div>
+        </div>
+        
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button variant="secondary" onClick={handleCancelEdit} disabled={isSaving}>
+            取消
+          </Button>
+          <Button onClick={handleSaveMetric} disabled={isSaving || !editingMetric?.name || !editingMetric?.metricName || editingMetric?.threshold === undefined}>
+            {isSaving ? '保存中...' : '保存'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // 渲染目标配置编辑表单
+  const renderTargetForm = (): React.ReactNode => (
+    <Card className="mb-6">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">
+          {editingTarget?.isNew ? '创建新SLA目标配置' : '编辑SLA目标配置'}
+        </CardTitle>
+        <CardDescription>配置不同优先级的SLA目标和响应规则</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">ID *</label>
+            <Input
+              value={editingTarget?.id || ''}
+              onChange={(e) => editingTarget && setEditingTarget({ ...editingTarget, id: e.target.value })}
+              placeholder="输入目标ID（小写英文）"
+              disabled={!editingTarget?.isNew}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">名称 *</label>
+            <Input
+              value={editingTarget?.name || ''}
+              onChange={(e) => editingTarget && setEditingTarget({ ...editingTarget, name: e.target.value })}
+              placeholder="输入目标名称"
+            />
+          </div>
+          
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-sm font-medium">描述</label>
+            <Input
+              value={editingTarget?.description || ''}
+              onChange={(e) => editingTarget && setEditingTarget({ ...editingTarget, description: e.target.value })}
+              placeholder="输入目标描述"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">响应时间（秒） *</label>
+            <Input
+              type="number"
+              value={editingTarget?.responseTime || ''}
+              onChange={(e) => editingTarget && setEditingTarget({ ...editingTarget, responseTime: parseInt(e.target.value) })}
+              placeholder="输入响应时间（秒）"
+            />
+            <p className="text-xs text-gray-500">
+              {editingTarget?.responseTime ? formatTime(editingTarget.responseTime) : '请输入响应时间'}
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">解决时间（秒） *</label>
+            <Input
+              type="number"
+              value={editingTarget?.resolveTime || ''}
+              onChange={(e) => editingTarget && setEditingTarget({ ...editingTarget, resolveTime: parseInt(e.target.value) })}
+              placeholder="输入解决时间（秒）"
+            />
+            <p className="text-xs text-gray-500">
+              {editingTarget?.resolveTime ? formatTime(editingTarget.resolveTime) : '请输入解决时间'}
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">升级策略 *</label>
+            <Select
+              value={editingTarget?.escalationPolicy || 'email_notification'}
+              onValueChange={(value: string) => editingTarget && setEditingTarget({ ...editingTarget, escalationPolicy: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="选择升级策略" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableEscalationPolicies.map((policy) => (
+                  <SelectItem key={policy.value} value={policy.value}>
+                    {policy.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">启用</label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={editingTarget?.isActive !== false}
+                onCheckedChange={(checked) => editingTarget && setEditingTarget({ ...editingTarget, isActive: checked })}
+              />
+              <span className="text-sm text-gray-500">{editingTarget?.isActive !== false ? '已启用' : '已禁用'}</span>
+            </div>
+          </div>
+          
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-sm font-medium">告警通道 *</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {availableAlertChannels.map((channel) => (
+                <div key={channel.value} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`channel-${channel.value}`}
+                    checked={editingTarget?.alertChannel?.includes(channel.value) || false}
+                    onChange={(e) => {
+                      if (!editingTarget) return;
+                      const channels = [...(editingTarget.alertChannel || [])];
+                      if (e.target.checked) {
+                        channels.push(channel.value);
+                      } else {
+                        const index = channels.indexOf(channel.value);
+                        if (index !== -1) {
+                          channels.splice(index, 1);
+                        }
+                      }
+                      setEditingTarget({ ...editingTarget, alertChannel: channels });
+                    }}
+                    className="rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <label htmlFor={`channel-${channel.value}`} className="text-sm">
+                    {channel.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button variant="secondary" onClick={handleCancelEdit} disabled={isSaving}>
+            取消
+          </Button>
+          <Button
+            onClick={handleSaveTarget}
+            disabled={
+              isSaving ||
+              !editingTarget?.id ||
+              !editingTarget?.name ||
+              editingTarget?.responseTime === undefined ||
+              editingTarget?.resolveTime === undefined ||
+              !editingTarget?.escalationPolicy ||
+              (!editingTarget?.alertChannel || editingTarget.alertChannel.length === 0)
+            }
+          >
+            {isSaving ? '保存中...' : '保存'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // 渲染主页面
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">SLA监控配置</h1>
+            <p className="text-gray-500 dark:text-gray-400">管理SLA指标、阈值和监控规则</p>
+          </div>
+          <div className="mt-4 md:mt-0 flex space-x-2">
+            <Button variant="secondary" size="sm" className="flex items-center">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              刷新配置
+            </Button>
+            <Button variant="secondary" size="sm" className="flex items-center">
+              <Eye className="h-4 w-4 mr-2" />
+              查看仪表板
+            </Button>
+          </div>
+        </div>
+
+        {/* 保存成功提示 */}
+        {saveSuccess && (
+          <Alert className="mb-6 bg-green-50 text-green-800 border-green-200">
+            <Check className="h-4 w-4" />
+            <AlertTitle>保存成功</AlertTitle>
+            <AlertDescription>
+              配置已成功保存到系统中
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* 编辑表单 */}
+        {editingMetric && renderMetricForm()}
+        {editingTarget && renderTargetForm()}
+
+        {/* 配置标签页 */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 mb-4">
+            <TabsTrigger value="metrics">SLA指标</TabsTrigger>
+            <TabsTrigger value="targets">SLA目标配置</TabsTrigger>
+          </TabsList>
+
+          {/* SLA指标标签页 */}
+          <TabsContent value="metrics">
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="text-sm font-medium">SLA指标管理</CardTitle>
+                    <CardDescription>定义和监控关键性能指标的SLA</CardDescription>
+                  </div>
+                  <Button size="sm" onClick={handleCreateMetric} disabled={!!editingMetric}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    添加指标
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {renderMetricsTable()}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* SLA目标配置标签页 */}
+          <TabsContent value="targets">
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="text-sm font-medium">SLA目标配置</CardTitle>
+                    <CardDescription>配置不同优先级的SLA响应和解决时间</CardDescription>
+                  </div>
+                  <Button size="sm" onClick={handleCreateTarget} disabled={!!editingTarget}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    添加目标
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {renderTargetsTable()}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* 删除确认对话框 */}
+        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认删除</AlertDialogTitle>
+              <AlertDialogDescription>
+                确定要删除此配置项吗？此操作无法撤销，可能会影响现有的监控规则。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setShowConfirmDialog(false)}>
+                取消
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={activeTab === 'metrics' ? handleDeleteMetric : handleDeleteTarget}>
+                确认删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
+  );
+}
+
+export default SLAConfiguration;
+  );
+}
+
+export default SLAConfiguration;
+  );
+}
+  );
+}
+
+export default SLAConfiguration;

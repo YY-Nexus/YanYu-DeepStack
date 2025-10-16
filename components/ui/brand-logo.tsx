@@ -5,7 +5,7 @@ import { Logo3D } from "./logo-3d"
 import { logoVariants } from "@/lib/brand-system"
 
 interface BrandLogoProps {
-  variant?: "image" | "3d" | "text"
+  variant?: "image" | "3d" | "text" | "default"
   size?: keyof typeof logoVariants.sizes
   context?: keyof typeof logoVariants.contexts
   showText?: boolean
@@ -36,7 +36,7 @@ export function BrandLogo({
             <div className="text-2xl font-bold bg-gradient-to-r from-cloud-blue-500 to-mint-green bg-clip-text text-transparent">
               言語云³
             </div>
-            {shouldShowText && <div className="text-xs text-gray-600 mt-1">深度堆栈智创引擎</div>}
+            {shouldShowText && <div className="text-xs text-gray-600 mt-1">万象归元于云枢  深栈智启新纪元</div>}
           </div>
         )
       default:
@@ -58,7 +58,7 @@ export function BrandLogo({
                 transition={{ delay: 0.2 }}
                 className="text-xs text-gray-600 mt-1 text-center"
               >
-                深度堆栈智创引擎
+                万象归元于云枢  深栈智启新纪元
               </motion.div>
             )}
           </div>

@@ -159,7 +159,7 @@ export function generateId(length = 8): string {
 
 // 防抖函数
 export function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null
+  let timeout: ReturnType<typeof setTimeout> | null = null
 
   return (...args: Parameters<T>) => {
     if (timeout) {
@@ -183,4 +183,25 @@ export function throttle<T extends (...args: any[]) => any>(func: T, limit: numb
       setTimeout(() => (inThrottle = false), limit)
     }
   }
+}
+
+// 获取文件扩展名
+export function getFileExtension(language: string): string {
+  const extensionMap: Record<string, string> = {
+    javascript: '.js',
+    typescript: '.ts',
+    python: '.py',
+    java: '.java',
+    csharp: '.cs',
+    go: '.go',
+    rust: '.rs',
+    php: '.php',
+    ruby: '.rb',
+    html: '.html',
+    css: '.css',
+    sql: '.sql',
+    markdown: '.md',
+  };
+  
+  return extensionMap[language.toLowerCase()] || '.txt';
 }

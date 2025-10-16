@@ -1,6 +1,9 @@
 "use client"
 
 import { serviceRegistry } from "./service-registry"
+import { SecurityUtils } from '../utils/security'
+import { jwtRefreshMiddleware } from '../middleware/jwt-refresh.middleware'
+import { permissionService } from '../services/permission.service'
 
 // API网关 - 统一入口和路由管理
 export class APIGateway {
@@ -158,7 +161,7 @@ export class APIGateway {
           return
         }
 
-        // 验证JWT令牌（简化实现）
+        // 验证JWT令牌
         const token = authHeader.substring(7)
         const isValid = await this.validateToken(token)
         if (!isValid) {
@@ -175,17 +178,78 @@ export class APIGateway {
       },
     })
 
+    // JWT刷新中间件
+    this.addMiddleware({
+      name: "jwt-refresh",
+      priority: 2.5,
+      execute: jwtRefreshMiddleware,
+    })
+
+    // 权限检查中间件
+    this.addMiddleware({
+      name: "authorization",
+      priority: 3,
+      execute: async (context: RequestContext, next: NextFunction) => {
+        // 跳过认证的路径也跳过权限检查
+        const skipAuthPaths = ["/api/auth/login", "/api/auth/register", "/api/health"]
+        if (skipAuthPaths.some((path) => context.path.startsWith(path))) {
+          await next()
+          return
+        }
+
+        // 已经通过认证，有用户信息
+        if (context.user) {
+          // 解析路径以确定资源和操作
+          // 例如: /api/projects -> resource: project, action: read/write based on method
+          const resourceMatch = context.path.match(/^\/api\/(\w+)/)
+          if (resourceMatch && resourceMatch[1]) {
+            const resource = resourceMatch[1]
+            let action = "read" // 默认为读取
+            
+            switch (context.method) {
+              case "POST":
+              case "PUT":
+                action = "write"
+                break
+              case "DELETE":
+                action = "delete"
+                break
+            }
+
+            // 检查权限
+            const hasPermission = await permissionService.checkPermission(
+              context.user.id,
+              action,
+              resource
+            )
+
+            if (!hasPermission) {
+              context.response = {
+                status: 403,
+                body: { error: "权限不足" },
+                headers: {},
+              }
+              return
+            }
+          }
+        }
+
+        await next()
+      },
+    })
+
     // CORS中间件
     this.addMiddleware({
       name: "cors",
-      priority: 3,
+      priority: 4,
       execute: async (context: RequestContext, next: NextFunction) => {
-        // 设置CORS头
+        // 设置CORS头 - 更安全的配置
         const corsHeaders = {
-          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGINS || "*",
           "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
           "Access-Control-Max-Age": "86400",
+          "Access-Control-Allow-Credentials": "true"
         }
 
         if (context.method === "OPTIONS") {
@@ -208,7 +272,7 @@ export class APIGateway {
     // 速率限制中间件
     this.addMiddleware({
       name: "rate-limit",
-      priority: 4,
+      priority: 5,
       execute: async (context: RequestContext, next: NextFunction) => {
         if (!this.config.enableRateLimit) {
           await next()
@@ -450,14 +514,26 @@ export class APIGateway {
 
   // 验证令牌
   private async validateToken(token: string): Promise<boolean> {
-    // 简化实现，实际应该验证JWT签名
-    return token.length > 10
+    try {
+      // 使用verifyJWT代替verifyToken，需要提供secret
+      SecurityUtils.verifyJWT(token, process.env.JWT_SECRET || 'default-secret')
+      return true
+    } catch (error) {
+      console.error('Token validation failed:', error)
+      return false
+    }
   }
 
   // 从令牌获取用户信息
   private async getUserFromToken(token: string): Promise<any> {
-    // 简化实现，实际应该解析JWT载荷
-    return { id: "user123", email: "user@example.com" }
+    try {
+      // 使用verifyJWT代替decodeToken，需要提供secret
+      const payload = SecurityUtils.verifyJWT(token, process.env.JWT_SECRET || 'default-secret')
+      return payload.user || { id: "user123", email: "user@example.com" }
+    } catch (error) {
+      console.error('Failed to extract user from token:', error)
+      return { id: "user123", email: "user@example.com" }
+    }
   }
 
   // 添加路由

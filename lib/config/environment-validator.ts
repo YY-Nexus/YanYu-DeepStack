@@ -266,7 +266,7 @@ export class EnvironmentValidator {
     const categories = this.groupByCategory()
 
     console.log("\n📊 环境变量配置报告:")
-    console.log("=" * 50)
+    console.log("=".repeat(50))
 
     for (const [category, results] of Object.entries(categories)) {
       console.log(`\n🔧 ${this.getCategoryName(category)}:`)

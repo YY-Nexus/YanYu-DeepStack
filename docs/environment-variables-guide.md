@@ -15,6 +15,7 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 **作用**: 支持Google账号登录和Google服务集成
 **必须性**: 可选 - 如果需要Google登录功能则必须
 **获取方式**:
+
 1. 访问 [Google Cloud Console](https://console.cloud.google.com/)
 2. 创建新项目或选择现有项目
 3. 启用 Google+ API 和 OAuth 2.0
@@ -30,6 +31,7 @@ AZURE_CLIENT_SECRET=your_azure_client_secret
 **作用**: 支持Microsoft账号登录和Azure服务集成
 **必须性**: 可选 - 如果需要Microsoft登录功能则必须
 **获取方式**:
+
 1. 访问 [Azure Portal](https://portal.azure.com/)
 2. 进入"Azure Active Directory" > "应用注册"
 3. 创建新的应用注册
@@ -45,6 +47,7 @@ GITHUB_CLIENT_SECRET=your_github_client_secret
 **作用**: 支持GitHub账号登录和代码仓库集成
 **必须性**: 推荐 - 开发平台通常需要GitHub集成
 **获取方式**:
+
 1. 访问 [GitHub Developer Settings](https://github.com/settings/developers)
 2. 点击"New OAuth App"
 3. 填写应用信息
@@ -60,6 +63,7 @@ SAML_CERT=-----BEGIN CERTIFICATE-----...-----END CERTIFICATE-----
 **作用**: 支持企业级SAML单点登录
 **必须性**: 可选 - 仅企业客户需要
 **获取方式**:
+
 1. 联系企业IT管理员获取SAML配置
 2. 从身份提供商(IdP)获取元数据文件
 3. 提取Entry Point、Issuer和证书信息
@@ -76,6 +80,7 @@ OPENAI_ORG_ID=org-...
 **必须性**: 可选 - 本地模型优先，云端模型作为备选
 **安全性**: 仅在服务端使用，不暴露给客户端
 **获取方式**:
+
 1. 访问 [OpenAI Platform](https://platform.openai.com/)
 2. 注册账号并验证
 3. 在API Keys页面创建新的API密钥
@@ -92,6 +97,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 **必须性**: 可选 - 提供更多AI模型选择
 **安全性**: 仅在服务端使用
 **获取方式**:
+
 1. 访问 [Anthropic Console](https://console.anthropic.com/)
 2. 申请API访问权限
 3. 创建API密钥
@@ -105,6 +111,7 @@ GOOGLE_API_KEY=AIza...
 **必须性**: 可选 - 多模态AI功能
 **安全性**: 仅在服务端使用
 **获取方式**:
+
 1. 访问 [Google AI Studio](https://makersuite.google.com/)
 2. 创建API密钥
 3. 启用相关AI服务
@@ -120,6 +127,7 @@ SLACK_CLIENT_SECRET=your_slack_client_secret
 **作用**: 支持Slack通知和团队协作功能
 **必须性**: 可选 - 团队协作功能
 **获取方式**:
+
 1. 访问 [Slack API](https://api.slack.com/apps)
 2. 创建新的Slack应用
 3. 配置OAuth & Permissions
@@ -135,6 +143,7 @@ JAEGER_ENDPOINT=http://jaeger-collector:14268
 **作用**: 分布式系统追踪和性能监控
 **必须性**: 可选 - 生产环境推荐
 **获取方式**:
+
 1. 部署Jaeger服务器
 2. 获取Collector端点地址
 3. 通常格式: `http://jaeger-host:14268`
@@ -147,6 +156,7 @@ ZIPKIN_ENDPOINT=http://zipkin:9411
 **作用**: 另一种分布式追踪解决方案
 **必须性**: 可选 - 与Jaeger二选一
 **获取方式**:
+
 1. 部署Zipkin服务器
 2. 获取服务端点地址
 3. 通常格式: `http://zipkin-host:9411`
@@ -164,13 +174,15 @@ ALIYUN_ENDPOINT=https://ecs.cn-hangzhou.aliyuncs.com
 **作用**: 集成阿里云各项服务(ECS、RDS、OSS等)
 **必须性**: 可选 - 如果使用阿里云部署则必须
 **获取方式**:
+
 1. 登录 [阿里云控制台](https://ram.console.aliyun.com/)
 2. 进入"访问控制RAM" > "用户"
 3. 创建用户并生成AccessKey
 4. 分配相应的权限策略
 5. 选择合适的地域(region)
 
-**安全建议**: 
+**安全建议**:
+
 - 使用RAM子账号，避免使用主账号AccessKey
 - 遵循最小权限原则
 - 定期轮换AccessKey

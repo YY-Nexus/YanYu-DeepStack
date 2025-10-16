@@ -43,7 +43,7 @@ export async function useTemplate(variables = {}) {
   let prompt = \`${template.prompt}\`
   
   for (const [key, value] of Object.entries(variables)) {
-    prompt = prompt.replace(new RegExp(\`{{${key}}}\`, "g"), value)
+    prompt = prompt.replace(new RegExp("{{" + key + "}}", "g"), value)
   }
   
   // 生成代码

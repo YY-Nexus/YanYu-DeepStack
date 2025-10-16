@@ -4,6 +4,11 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import type { Project, ProjectFile, ProjectVersion, TeamMember } from "@/types/project"
 
+// 创建项目数据类型
+interface CreateProjectData extends Omit<Project, "id" | "metadata" | "versions"> {
+  metadata?: Partial<Pick<Project["metadata"], "tags" | "language" | "framework">>;
+}
+
 interface ProjectStore {
   // 当前状态
   projects: Project[]
@@ -11,7 +16,7 @@ interface ProjectStore {
   currentFile: ProjectFile | null
 
   // 项目操作
-  createProject: (project: Omit<Project, "id" | "metadata" | "versions">) => Promise<Project>
+  createProject: (project: CreateProjectData) => Promise<Project>
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>
   deleteProject: (id: string) => Promise<void>
   duplicateProject: (id: string, name: string) => Promise<Project>

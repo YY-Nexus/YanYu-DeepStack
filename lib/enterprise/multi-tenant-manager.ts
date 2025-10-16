@@ -284,8 +284,20 @@ export class MultiTenantManager {
         tenantId,
         withinLimits: false,
         violations: ["租户或配额不存在"],
-        usage: {},
-        limits: {},
+        usage: {
+          users: 0,
+          projects: 0,
+          storage: 0,
+          apiCalls: 0,
+          aiRequests: 0,
+        },
+        limits: {
+          users: 0,
+          projects: 0,
+          storage: 0,
+          apiCalls: 0,
+          aiRequests: 0,
+        },
       }
     }
 

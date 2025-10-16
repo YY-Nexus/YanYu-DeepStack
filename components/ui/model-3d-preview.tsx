@@ -14,10 +14,10 @@ interface Model3DPreviewProps {
 
 export default function Model3DPreview({ modelUrl, className = "" }: Model3DPreviewProps) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const sceneRef = useRef<THREE.Scene>()
-  const rendererRef = useRef<THREE.WebGLRenderer>()
-  const cameraRef = useRef<THREE.PerspectiveCamera>()
-  const controlsRef = useRef<OrbitControls>()
+  const sceneRef = useRef<THREE.Scene | null>(null)
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const controlsRef = useRef<OrbitControls | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>("")
 
@@ -43,7 +43,21 @@ export default function Model3DPreview({ modelUrl, className = "" }: Model3DPrev
     renderer.setSize(400, 400)
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
-    renderer.outputEncoding = THREE.sRGBEncoding // 更好的颜色处理
+    
+    // 设置颜色空间 (Three.js r150+)
+    try {
+      // @ts-ignore - 使用新版本的 outputColorSpace
+      renderer.outputColorSpace = THREE.SRGBColorSpace
+    } catch {
+      // 回退到旧版本的方式
+      try {
+        // @ts-ignore - 兼容旧版本
+        renderer.outputEncoding = 3001 // THREE.sRGBEncoding 的值
+      } catch {
+        // 如果都不支持就跳过
+        console.warn("Three.js color space configuration not supported")
+      }
+    }
     rendererRef.current = renderer
     mountRef.current.appendChild(renderer.domElement)
 
@@ -192,7 +206,11 @@ export default function Model3DPreview({ modelUrl, className = "" }: Model3DPrev
         },
         (error) => {
           console.error("模型加载错误:", error)
-          setError("模型加载失败: " + error.message)
+          if (error instanceof Error) {
+            setError("模型加载失败: " + error.message)
+          } else {
+            setError("模型加载失败")
+          }
           setLoading(false)
         },
       )
@@ -234,7 +252,11 @@ export default function Model3DPreview({ modelUrl, className = "" }: Model3DPrev
         },
         (error) => {
           console.error("模型加载错误:", error)
-          setError("模型加载失败: " + error.message)
+          if (error instanceof Error) {
+            setError("模型加载失败: " + error.message)
+          } else {
+            setError("模型加载失败")
+          }
           setLoading(false)
         },
       )

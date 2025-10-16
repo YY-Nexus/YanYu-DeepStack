@@ -602,7 +602,7 @@ export class EnhancedOllamaService extends EventEmitter {
         console.warn("健康检查失败:", error)
         this.scheduleReconnect()
       }
-    }, 30000) // 每30秒检查一次
+    }, 30000) as unknown as NodeJS.Timeout // 每30秒检查一次
   }
 
   // 重连调度

@@ -9,6 +9,8 @@ import AutomationProduction from "@/components/modules/automation-production"
 import FileReview from "@/components/modules/file-review"
 import ScoreAnalysis from "@/components/modules/score-analysis"
 import DeploymentManagement from "@/components/modules/deployment-management"
+import LocalModelEngine from "@/components/modules/local-model-engine"
+import Documentation from "@/components/modules/documentation"
 
 interface MainContentProps {
   activeModule: ModuleType
@@ -18,6 +20,8 @@ export default function MainContent({ activeModule }: MainContentProps) {
   // 根据激活的模块渲染对应组件
   const renderModuleContent = () => {
     switch (activeModule) {
+      case "documentation":
+        return <Documentation />
       case "ai-code-generation":
         return <AICodeGeneration />
       case "app-development":
@@ -32,6 +36,8 @@ export default function MainContent({ activeModule }: MainContentProps) {
         return <ScoreAnalysis />
       case "deployment-management":
         return <DeploymentManagement />
+      case "local-model-engine":
+        return <LocalModelEngine />
       default:
         return <DefaultModuleView activeModule={activeModule} />
     }

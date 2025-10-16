@@ -119,7 +119,6 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
           deploy: [],
           share: [],
         },
-        versions: [],
         currentVersion: "1.0.0",
         deployment: {
           platforms: [],
@@ -155,12 +154,6 @@ export default function CreateProjectModal({ isOpen, onClose }: CreateProjectMod
             model: "gpt-4",
             contextWindow: 4000,
           },
-        },
-        metadata: {
-          tags: formData.tags,
-          language: formData.language,
-          framework: formData.framework,
-          version: "1.0.0",
         },
       })
 

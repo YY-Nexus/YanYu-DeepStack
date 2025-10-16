@@ -351,7 +351,7 @@ export class DistributedTracing {
     }
 
     if (query.operationName) {
-      results = results.filter((trace) => trace.operationName.includes(query.operationName))
+      results = results.filter((trace) => trace.operationName && trace.operationName.includes(query.operationName!))
     }
 
     if (query.startTime && query.endTime) {

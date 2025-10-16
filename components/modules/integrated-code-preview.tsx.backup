@@ -1,0 +1,501 @@
+"use client"
+
+import { useState, useEffect, useCallback, useRef } from "react"
+import { 
+  Eye, Code, FileText, Split, Maximize2, Download, Play, Terminal, 
+  Copy, Refresh, Share, Settings
+} from "lucide-react"
+import { 
+  BrandButton, 
+  BrandCard, 
+  BrandBadge, 
+  BrandDropdown, 
+  BrandDropdownItem,
+  BrandTooltip,
+  BrandToast,
+  BrandToastContainer
+} from "@/components/ui"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import MonacoEditor from "@/components/ui/monaco-editor"
+import MarkdownPreview from "@/components/ui/markdown-preview"
+import { useModelCodeIntegration } from "@/lib/ai/model-code-integration"
+import { detectLanguage, formatCode, getFileExtension } from "@/lib/utils"
+import { useClipboard } from "@/lib/hooks"
+import { EditorTheme } from "@/types"
+
+type LayoutMode = "split" | "preview-only" | "editor-only"
+
+interface IntegratedCodePreviewProps {
+  initialCode?: string
+  initialLanguage?: string
+  className?: string
+  onCodeChange?: (code: string) => void
+  onLanguageChange?: (language: string) => void
+  readOnly?: boolean
+  defaultLayout?: LayoutMode
+  defaultTheme?: EditorTheme
+}
+
+export default function IntegratedCodePreview({
+  initialCode = "",
+  initialLanguage = "javascript",
+  className = "",
+  onCodeChange,
+  onLanguageChange,
+  readOnly = false,
+  defaultLayout = "split",
+  defaultTheme = "light" as EditorTheme,
+}: IntegratedCodePreviewProps) {
+  const [code, setCode] = useState(initialCode)
+  const [language, setLanguage] = useState(initialLanguage)
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(defaultLayout)
+  const [editorTheme, setEditorTheme] = useState<EditorTheme>(defaultTheme)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [activeTab, setActiveTab] = useState("preview")
+  const [consoleOutput, setConsoleOutput] = useState<string[]>([])
+  const [isRunning, setIsRunning] = useState(false)
+  const [runError, setRunError] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null)
+  
+  const { generateCode, isGenerating } = useModelCodeIntegration()
+  const editorRef = useRef<HTMLDivElement>(null)
+  const { copy } = useClipboard()
+
+  // 初始化代码和语言
+  useEffect(() => {
+    if (initialCode) {
+      setCode(initialCode)
+      if (!initialLanguage) {
+        const detectedLang = detectLanguage(initialCode)
+        setLanguage(detectedLang)
+        onLanguageChange?.(detectedLang)
+      }
+    }
+  }, [initialCode, initialLanguage, onLanguageChange])
+
+  // 同步代码变化到父组件
+  useEffect(() => {
+    onCodeChange?.(code)
+  }, [code, onCodeChange])
+
+  // 持久化布局和主题设置
+  useEffect(() => {
+    const savedLayout = localStorage.getItem("codePreviewLayout")
+    const savedTheme = localStorage.getItem("codePreviewTheme")
+    
+    if (savedLayout) setLayoutMode(savedLayout as LayoutMode)
+    if (savedTheme) setEditorTheme(savedTheme as EditorTheme)
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem("codePreviewLayout", layoutMode)
+    localStorage.setItem("codePreviewTheme", editorTheme)
+  }, [layoutMode, editorTheme])
+
+  // 运行代码
+  const handleRunCode = useCallback(async () => {
+    if (!code.trim() || isRunning) return
+
+    setIsRunning(true)
+    setRunError(null)
+    setConsoleOutput([])
+    setActiveTab("console")
+
+    try {
+      // 执行代码（使用沙箱环境）
+      const result = await fetch("/api/run-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, language })
+      })
+
+      const { output, error } = await result.json()
+      
+      if (error) {
+        setRunError(error)
+      } else {
+        setConsoleOutput([output])
+      }
+    } catch (error) {
+      setRunError(error instanceof Error ? error.message : "代码执行失败")
+    } finally {
+      setIsRunning(false)
+    }
+  }, [code, language, isRunning])
+
+  // 优化代码
+  const handleOptimizeCode = useCallback(async () => {
+    if (!code.trim() || isGenerating) return
+
+    try {
+      const prompt = `优化以下${language}代码，提高可读性和性能：\n\n${code}`
+      
+      const { success, code: optimizedCode, error } = await generateCode(prompt, {
+        temperature: 0.2,
+        maxTokens: 1000
+      })
+
+      if (success && optimizedCode) {
+        setCode(optimizedCode)
+        setToast({ message: "代码优化成功", type: "success" })
+      } else {
+        setRunError(error || "代码优化失败")
+      }
+    } catch (error) {
+      setRunError(error instanceof Error ? error.message : "代码优化失败")
+    }
+  }, [code, language, generateCode, isGenerating])
+
+  // 解释代码
+  const handleExplainCode = useCallback(async () => {
+    if (!code.trim() || isGenerating) return
+
+    try {
+      const prompt = `详细解释以下${language}代码的功能和工作原理：\n\n${code}`
+      
+      const { success, code: explanation, error } = await generateCode(prompt, {
+        temperature: 0.3,
+        maxTokens: 1500
+      })
+
+      if (success && explanation) {
+        setConsoleOutput([explanation])
+        setActiveTab("console")
+      } else {
+        setRunError(error || "代码解释失败")
+      }
+    } catch (error) {
+      setRunError(error instanceof Error ? error.message : "代码解释失败")
+    }
+  }, [code, language, generateCode, isGenerating])
+
+  // 格式化代码
+  const handleFormatCode = useCallback(async () => {
+    if (!code.trim()) return
+
+    try {
+      const formattedCode = formatCode(code, language)
+      if (formattedCode) {
+        setCode(formattedCode)
+        setToast({ message: "代码格式化成功", type: "success" })
+      }
+    } catch (error) {
+      setRunError(error instanceof Error ? error.message : "代码格式化失败")
+    }
+  }, [code, language])
+
+  // 复制代码到剪贴板
+  const handleCopyCode = useCallback(async () => {
+    try {
+      await copy(code)
+      setToast({ message: "代码已复制到剪贴板", type: "success" })
+    } catch (error) {
+      setToast({ message: "复制失败", type: "error" })
+    }
+  }, [code, copy])
+
+  // 切换全屏
+  const toggleFullscreen = useCallback(() => {
+    if (isFullscreen) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen()
+      }
+    } else {
+      const element = editorRef.current
+      if (element && element.requestFullscreen) {
+        element.requestFullscreen().catch(() => {
+          setToast({ message: "全屏模式失败", type: "error" })
+        })
+      }
+    }
+    setIsFullscreen(!isFullscreen)
+  }, [isFullscreen])
+
+  // 下载代码
+  const handleDownloadCode = useCallback(() => {
+    const fileExt = getFileExtension(language)
+    const blob = new Blob([code], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    
+    a.href = url
+    a.download = `code${fileExt}`
+    document.body.appendChild(a)
+    a.click()
+    
+    setTimeout(() => {
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    }, 100)
+  }, [code, language])
+
+  // 切换编辑器主题
+  const toggleTheme = useCallback(() => {
+    setEditorTheme(editorTheme === "light" ? "dark" : "light")
+  }, [editorTheme])
+
+  return (
+    <div ref={editorRef} className={`h-full ${className}`}>
+      <BrandCard 
+        variant="glass" 
+        className={`h-full overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
+      >
+        <div className="h-full flex flex-col">
+          {/* 顶部工具栏 */}
+          <div className="p-3 border-b border-gray-200/50 bg-gray-50 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-cloud-blue-500 to-mint-green rounded-lg flex items-center justify-center shadow-glow">
+                <Eye className="h-4 w-4 text-white" />
+              </div>
+              <div className="flex items-center space-x-2">
+                <h3 className="font-semibold text-gray-800">代码预览</h3>
+                <BrandBadge variant="outline" size="sm">
+                  {language.toUpperCase()}
+                </BrandBadge>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-1">
+              {/* 布局切换 */}
+              <BrandTooltip content="切换布局模式">
+                <div className="flex items-center border rounded-md overflow-hidden">
+                  <button
+                    onClick={() => setLayoutMode("editor-only")}
+                    className={`p-1.5 ${layoutMode === "editor-only" ? "bg-gray-100" : "bg-white"}`}
+                  >
+                    <Code className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setLayoutMode("split")}
+                    className={`p-1.5 ${layoutMode === "split" ? "bg-gray-100" : "bg-white"}`}
+                  >
+                    <Split className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setLayoutMode("preview-only")}
+                    className={`p-1.5 ${layoutMode === "preview-only" ? "bg-gray-100" : "bg-white"}`}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                </div>
+              </BrandTooltip>
+              
+              {/* 主题切换 */}
+              <BrandTooltip content="切换主题">
+                <button 
+                  onClick={toggleTheme} 
+                  className="p-1.5 border rounded-md ml-1"
+                >
+                  {editorTheme === "light" ? (
+                    <Maximize2 className="h-4 w-4" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4 text-white" />
+                  )}
+                </button>
+              </BrandTooltip>
+              
+              {/* 功能按钮 */}
+              <BrandDropdown>
+                <BrandButton variant="outline" size="sm" icon={<Settings className="h-4 w-4" />} />
+                <BrandDropdownItem 
+                  onClick={handleCopyCode}
+                  icon={<Copy className="h-4 w-4" />}
+                >
+                  复制代码
+                </BrandDropdownItem>
+                <BrandDropdownItem 
+                  onClick={handleFormatCode}
+                  icon={<Refresh className="h-4 w-4" />}
+                >
+                  格式化代码
+                </BrandDropdownItem>
+                <BrandDropdownItem 
+                  onClick={handleDownloadCode}
+                  icon={<Download className="h-4 w-4" />}
+                >
+                  下载代码
+                </BrandDropdownItem>
+                <BrandDropdownItem 
+                  onClick={toggleFullscreen}
+                  icon={<Maximize2 className="h-4 w-4" />}
+                >
+                  {isFullscreen ? "退出全屏" : "全屏模式"}
+                </BrandDropdownItem>
+              </BrandDropdown>
+            </div>
+          </div>
+
+          {/* 主要内容区 */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* 编辑器区域 */}
+            {layoutMode !== "preview-only" && (
+              <div className={`${layoutMode === "split" ? "w-1/2" : "w-full"} h-full border-r border-gray-200/50`}>
+                <MonacoEditor
+                  value={code}
+                  language={language}
+                  onChange={setCode}
+                  options={{
+                    minimap: { enabled: true },
+                    fontSize: 14,
+                    lineNumbers: "on",
+                    wordWrap: "on",
+                    automaticLayout: true,
+                    readOnly,
+                    theme: editorTheme === "light" ? "vs" : "vs-dark",
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* 预览区域 */}
+            {layoutMode !== "editor-only" && (
+              <div className={`${layoutMode === "split" ? "w-1/2" : "w-full"} h-full flex flex-col`}>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+                  <div className="border-b border-gray-200/50 px-4">
+                    <TabsList className="h-12">
+                      <TabsTrigger value="preview" className="flex items-center gap-1">
+                        <Eye className="h-4 w-4" />
+                        预览
+                      </TabsTrigger>
+                      <TabsTrigger value="console" className="flex items-center gap-1">
+                        <Terminal className="h-4 w-4" />
+                        控制台
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+                  
+                  <TabsContent value="preview" className="flex-1 p-4 overflow-auto">
+                    <div className="h-full">
+                      {language === "markdown" ? (
+                        <MarkdownPreview content={code} />
+                      ) : language === "html" ? (
+                        <iframe
+                          srcDoc={code}
+                          className="w-full h-full border-0"
+                          title="HTML Preview"
+                          sandbox="allow-scripts"
+                        />
+                      ) : (
+                        <div className="h-full flex items-center justify-center">
+                          <div className="text-center">
+                            <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                            <p className="text-sm text-muted-foreground">
+                              {language === "javascript" || language === "typescript" 
+                                ? "点击"运行"按钮执行代码" 
+                                : `${language.toUpperCase()} 代码预览不可用`}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="console" className="flex-1 p-0 overflow-hidden">
+                    <div className="h-full flex flex-col">
+                      <div className="flex-1 bg-gray-900 text-gray-100 p-4 font-mono text-sm overflow-auto">
+                        {consoleOutput.length > 0 ? (
+                          <div>
+                            {consoleOutput.map((output, index) => (
+                              <div key={index} className="mb-1">
+                                {output.startsWith('\`\`\`') ? (
+                                  <MarkdownPreview content={output} />
+                                ) : (
+                                  <pre className="whitespace-pre-wrap">{output}</pre>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-gray-500 italic">控制台输出将显示在这里。</div>
+                        )}
+                      </div>
+                      
+                      {runError && (
+                        <Alert variant="destructive" className="m-2">
+                          <AlertDescription>{runError}</AlertDescription>
+                        </Alert>
+                      )}
+                      
+                      <div className="p-2 border-t border-gray-700 bg-gray-800 flex items-center justify-between">
+                        <div className="text-xs text-gray-400">
+                          {isRunning ? "执行中..." : consoleOutput.length > 0 ? `${consoleOutput.length} 条输出` : ""}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => setConsoleOutput([])}
+                            className="text-xs text-gray-400 hover:text-white"
+                          >
+                            清除
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+          </div>
+
+          {/* 底部操作栏 */}
+          <div className="p-3 border-t border-gray-200/50 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                {code.length} 字符 | {code.split('\n').length} 行
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <BrandButton
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExplainCode}
+                  loading={isGenerating}
+                  disabled={readOnly || !code.trim() || isGenerating || isRunning}
+                  icon={<FileText className="h-4 w-4" />}
+                >
+                  解释代码
+                </BrandButton>
+                
+                <BrandButton
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOptimizeCode}
+                  loading={isGenerating}
+                  disabled={readOnly || !code.trim() || isGenerating || isRunning}
+                  icon={<Code className="h-4 w-4" />}
+                >
+                  优化代码
+                </BrandButton>
+                
+                <BrandButton
+                  variant="gradient"
+                  size="sm"
+                  onClick={handleRunCode}
+                  loading={isRunning}
+                  disabled={readOnly || !code.trim() || isRunning || isGenerating || 
+                    (language !== "javascript" && language !== "typescript")}
+                  icon={<Play className="h-4 w-4" />}
+                >
+                  运行
+                </BrandButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      </BrandCard>
+      
+      {/* 通知提示 */}
+      <BrandToastContainer>
+        {toast && (
+          <BrandToast
+            variant={toast.type === "success" ? "default" : "destructive"}
+            title={toast.message}
+            onClose={() => setToast(null)}
+            duration={3000}
+          />
+        )}
+      </BrandToastContainer>
+    </div>
+  )
+}    

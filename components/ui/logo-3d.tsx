@@ -13,10 +13,10 @@ interface Logo3DProps {
 
 export function Logo3D({ size = 200, autoRotate = true, interactive = true, className = "" }: Logo3DProps) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const sceneRef = useRef<THREE.Scene>()
-  const rendererRef = useRef<THREE.WebGLRenderer>()
-  const cameraRef = useRef<THREE.PerspectiveCamera>()
-  const logoGroupRef = useRef<THREE.Group>()
+  const sceneRef = useRef<THREE.Scene | null>(null)
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
+  const logoGroupRef = useRef<THREE.Group | null>(null)
   const [isHovered, setIsHovered] = useState(false)
 
   useEffect(() => {

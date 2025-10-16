@@ -1,5 +1,6 @@
 // 模块类型定义
 export type ModuleType =
+  | "local-model-engine" // 模型引擎
   | "ai-code-generation" // AI代码生成
   | "app-development" // 应用开发
   | "real-time-preview" // 实时预览
@@ -7,6 +8,7 @@ export type ModuleType =
   | "file-review" // 文件审查
   | "score-analysis" // 评分分析
   | "deployment-management" // 部署管理
+  | "documentation" // 文档中心
 
 // 模块配置接口
 export interface ModuleConfig {
@@ -20,6 +22,22 @@ export interface ModuleConfig {
 
 // 模块配置数据
 export const moduleConfigs: ModuleConfig[] = [
+  {
+    id: "documentation",
+    name: "文档中心",
+    description: "系统文档与实施指导",
+    icon: "📚",
+    color: "indigo-purple",
+    path: "/docs",
+  },
+  {
+    id: "local-model-engine",
+    name: "模型引擎",
+    description: "本地大模型全生命周期管理",
+    icon: "🧠",
+    color: "cloud-blue",
+    path: "/model-engine",
+  },
   {
     id: "ai-code-generation",
     name: "AI代码生成",

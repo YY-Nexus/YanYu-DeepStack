@@ -1,29 +1,38 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useRef, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Eye, Code, FileText, CuboidIcon as Cube, Split, Maximize2, Download, Share2 } from "lucide-react"
-import { BrandButton } from "@/components/ui/brand-button"
-import { BrandCard } from "@/components/ui/brand-card"
-import { BrandBadge } from "@/components/ui/brand-badge"
-import MonacoEditor from "@/components/ui/monaco-editor"
-import MarkdownPreview from "@/components/ui/markdown-preview"
-import Model3DPreview from "@/components/ui/model-3d-preview"
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Eye,
+  Code,
+  FileText,
+  CuboidIcon as Cube,
+  Split,
+  Maximize2,
+  Download,
+  Share2,
+} from "lucide-react";
+import { BrandButton } from "@/components/ui/brand-button";
+import { BrandCard } from "@/components/ui/brand-card";
+import { BrandBadge } from "@/components/ui/brand-badge";
+import MonacoEditor from "@/components/ui/monaco-editor";
+import MarkdownPreview from "@/components/ui/markdown-preview";
+import Model3DPreview from "@/components/ui/model-3d-preview";
 
-type PreviewType = "code" | "markdown" | "3d" | "html"
-type LayoutMode = "split" | "preview-only" | "editor-only"
+type PreviewType = "code" | "markdown" | "3d" | "html";
+type LayoutMode = "split" | "preview-only" | "editor-only";
 
 export default function RealTimePreview() {
-  const [previewType, setPreviewType] = useState<PreviewType>("code")
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("split")
-  const [content, setContent] = useState("")
-  const [language, setLanguage] = useState("javascript")
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [previewType, setPreviewType] = useState<PreviewType>("code");
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("split");
+  const [content, setContent] = useState("");
+  const [language, setLanguage] = useState("javascript");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 默认内容
-  const defaultContent = {
+  const defaultContent: Record<PreviewType, string> = {
     code: `// 欢迎使用言語云³实时预览
 function fibonacci(n) {
   if (n <= 1) return n;
@@ -151,26 +160,40 @@ const techStack = {
     </div>
 </body>
 </html>`,
-  }
+    "3d": "/models/default-model.glb",
+  };
 
   // 初始化内容
   useEffect(() => {
-    setContent(defaultContent[previewType] || "")
-  }, [previewType])
+    setContent(defaultContent[previewType] || "");
+  }, [previewType]);
 
   const previewTypes = [
     { id: "code", name: "代码", icon: Code, color: "primary" },
     { id: "markdown", name: "Markdown", icon: FileText, color: "success" },
     { id: "3d", name: "3D模型", icon: Cube, color: "warning" },
     { id: "html", name: "HTML", icon: Eye, color: "info" },
-  ] as const
+  ] as const;
 
-  const languages = ["javascript", "typescript", "python", "java", "cpp", "html", "css", "json", "xml"]
+  const languages = [
+    "javascript",
+    "typescript",
+    "python",
+    "java",
+    "cpp",
+    "html",
+    "css",
+    "json",
+    "xml",
+  ];
 
   return (
-    <div className="h-full">
-      <BrandCard variant="glass" className="h-full overflow-hidden">
-        <div className="h-full flex flex-col">
+    <div className="h-screen min-h-0 flex flex-col">
+      <BrandCard
+        variant="glass"
+        className="flex-1 flex flex-col overflow-hidden min-h-0 h-full"
+      >
+        <div className="flex-1 flex flex-col min-h-0 h-full">
           {/* 头部控制区 */}
           <div className="p-4 border-b border-gray-200/50 bg-gradient-to-r from-cloud-blue-50 to-mint-green/10">
             <div className="flex items-center justify-between">
@@ -184,7 +207,9 @@ const techStack = {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-800">实时预览</h2>
-                  <p className="text-sm text-gray-600">多格式内容实时预览与编辑</p>
+                  <p className="text-sm text-gray-600">
+                    多格式内容实时预览与编辑
+                  </p>
                 </div>
               </motion.div>
 
@@ -214,10 +239,18 @@ const techStack = {
                 </div>
 
                 {/* 操作按钮 */}
-                <BrandButton variant="outline" size="sm" icon={<Download className="h-4 w-4" />}>
+                <BrandButton
+                  variant="outline"
+                  size="sm"
+                  icon={<Download className="h-4 w-4" />}
+                >
                   导出
                 </BrandButton>
-                <BrandButton variant="outline" size="sm" icon={<Share2 className="h-4 w-4" />}>
+                <BrandButton
+                  variant="outline"
+                  size="sm"
+                  icon={<Share2 className="h-4 w-4" />}
+                >
                   分享
                 </BrandButton>
                 <BrandButton
@@ -258,6 +291,8 @@ const techStack = {
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
                   className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cloud-blue-500/50"
+                  title="选择编程语言"
+                  aria-label="选择编程语言"
                 >
                   {languages.map((lang) => (
                     <option key={lang} value={lang}>
@@ -270,7 +305,7 @@ const techStack = {
           </div>
 
           {/* 主内容区 */}
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex min-h-0 h-full overflow-hidden">
             <AnimatePresence mode="wait">
               {layoutMode === "split" && (
                 <motion.div
@@ -278,10 +313,10 @@ const techStack = {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="flex w-full h-full"
+                  className="flex w-full h-full min-h-0"
                 >
                   {/* 编辑器区域 */}
-                  <div className="w-1/2 border-r border-gray-200/50">
+                  <div className="w-1/2 flex-1 h-full min-h-0 flex flex-col border-r border-gray-200/50">
                     <EditorPanel
                       previewType={previewType}
                       content={content}
@@ -290,8 +325,12 @@ const techStack = {
                     />
                   </div>
                   {/* 预览区域 */}
-                  <div className="w-1/2">
-                    <PreviewPanel previewType={previewType} content={content} language={language} />
+                  <div className="w-1/2 flex-1 h-full min-h-0 flex flex-col">
+                    <PreviewPanel
+                      previewType={previewType}
+                      content={content}
+                      language={language}
+                    />
                   </div>
                 </motion.div>
               )}
@@ -302,9 +341,15 @@ const techStack = {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="w-full h-full"
+                  className="w-full flex-1 h-full min-h-0 flex flex-col"
+                  style={{ minHeight: 0, height: "100%" }}
                 >
-                  <EditorPanel previewType={previewType} content={content} language={language} onChange={setContent} />
+                  <EditorPanel
+                    previewType={previewType}
+                    content={content}
+                    language={language}
+                    onChange={setContent}
+                  />
                 </motion.div>
               )}
 
@@ -314,9 +359,14 @@ const techStack = {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="w-full h-full"
+                  className="w-full flex-1 h-full min-h-0 flex flex-col"
+                  style={{ minHeight: 0, height: "100%" }}
                 >
-                  <PreviewPanel previewType={previewType} content={content} language={language} />
+                  <PreviewPanel
+                    previewType={previewType}
+                    content={content}
+                    language={language}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -324,7 +374,7 @@ const techStack = {
         </div>
       </BrandCard>
     </div>
-  )
+  );
 }
 
 // 编辑器面板组件
@@ -334,18 +384,20 @@ function EditorPanel({
   language,
   onChange,
 }: {
-  previewType: PreviewType
-  content: string
-  language: string
-  onChange: (value: string) => void
+  previewType: PreviewType;
+  content: string;
+  language: string;
+  onChange: (value: string) => void;
 }) {
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex-1 h-full min-h-0 flex flex-col" /* min-h-0 + h-full 保证自适应高度，无需内联style */>
       <div className="p-3 bg-gray-50 border-b border-gray-200/50">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-gray-700">编辑器</h3>
           <BrandBadge variant="info" size="sm">
-            {previewType === "code" ? language.toUpperCase() : previewType.toUpperCase()}
+            {previewType === "code"
+              ? language.toUpperCase()
+              : previewType.toUpperCase()}
           </BrandBadge>
         </div>
       </div>
@@ -355,7 +407,13 @@ function EditorPanel({
         ) : (
           <MonacoEditor
             value={content}
-            language={previewType === "markdown" ? "markdown" : previewType === "html" ? "html" : language}
+            language={
+              previewType === "markdown"
+                ? "markdown"
+                : previewType === "html"
+                  ? "html"
+                  : language
+            }
             onChange={onChange}
             options={{
               minimap: { enabled: false },
@@ -368,7 +426,7 @@ function EditorPanel({
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // 预览面板组件
@@ -377,12 +435,12 @@ function PreviewPanel({
   content,
   language,
 }: {
-  previewType: PreviewType
-  content: string
-  language: string
+  previewType: PreviewType;
+  content: string;
+  language: string;
 }) {
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex-1 h-full min-h-0 flex flex-col">
       <div className="p-3 bg-gray-50 border-b border-gray-200/50">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-gray-700">预览</h3>
@@ -392,26 +450,28 @@ function PreviewPanel({
         </div>
       </div>
       <div className="flex-1 overflow-auto">
-        {previewType === "code" && <CodePreview content={content} language={language} />}
+        {previewType === "code" && (
+          <CodePreview content={content} language={language} />
+        )}
         {previewType === "markdown" && <MarkdownPreview content={content} />}
         {previewType === "3d" && <Model3DPreview modelUrl={content} />}
         {previewType === "html" && <HTMLPreview content={content} />}
       </div>
     </div>
-  )
+  );
 }
 
 // 3D模型上传组件
 function Model3DUploader({ onChange }: { onChange: (url: string) => void }) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file)
-      onChange(url)
+      const url = URL.createObjectURL(file);
+      onChange(url);
     }
-  }
+  };
 
   return (
     <div className="h-full flex items-center justify-center bg-gray-50">
@@ -426,49 +486,66 @@ function Model3DUploader({ onChange }: { onChange: (url: string) => void }) {
         </motion.div>
         <h3 className="text-lg font-semibold text-gray-800 mb-2">上传3D模型</h3>
         <p className="text-sm text-gray-600 mb-4">支持 GLB、OBJ、FBX 格式</p>
-        <BrandButton variant="outline" onClick={() => fileInputRef.current?.click()}>
+        <BrandButton
+          variant="outline"
+          onClick={() => fileInputRef.current?.click()}
+        >
           选择文件
         </BrandButton>
-        <input ref={fileInputRef} type="file" accept=".glb,.obj,.fbx" onChange={handleFileUpload} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".glb,.obj,.fbx"
+          onChange={handleFileUpload}
+          className="hidden"
+          title="选择3D模型文件"
+          aria-label="选择3D模型文件"
+        />
       </div>
     </div>
-  )
+  );
 }
 
 // 代码预览组件
-function CodePreview({ content, language }: { content: string; language: string }) {
+function CodePreview({
+  content,
+  language,
+}: {
+  content: string;
+  language: string;
+}) {
   return (
-    <div className="h-full p-4">
-      <div className="bg-gray-900 rounded-lg h-full overflow-auto">
-        <pre className="p-4 text-green-400 font-mono text-sm">
+    <div className="h-full min-h-0 p-4">
+      <div className="bg-gray-900 rounded-lg h-full min-h-0 overflow-auto">
+        <pre className="p-4 text-green-400 font-mono text-sm h-full min-h-0 border border-gray-700">
           <code>{content}</code>
         </pre>
       </div>
     </div>
-  )
+  );
 }
 
 // HTML预览组件
 function HTMLPreview({ content }: { content: string }) {
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // 验证HTML内容
     try {
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(content, "text/html")
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, "text/html");
       if (doc.querySelector("parsererror")) {
-        setError("HTML解析错误，请检查语法")
+        setError("HTML解析错误，请检查语法");
       } else {
-        setError(null)
+        setError(null);
       }
     } catch (err) {
-      setError("HTML验证失败")
+      setError("HTML验证失败");
     }
-  }, [content])
+  }, [content]);
 
   return (
-    <div className="h-full relative">
+    <div className="h-full min-h-0 relative">
       {error ? (
         <div className="absolute inset-0 flex items-center justify-center bg-red-50">
           <div className="text-red-500 text-center p-4">
@@ -479,12 +556,12 @@ function HTMLPreview({ content }: { content: string }) {
       ) : (
         <iframe
           srcDoc={content}
-          className="w-full h-full border-0"
+          className="w-full h-full min-h-0 border-0"
           sandbox="allow-scripts allow-same-origin"
           title="HTML预览"
           onError={() => setError("预览加载失败")}
         />
       )}
     </div>
-  )
+  );
 }

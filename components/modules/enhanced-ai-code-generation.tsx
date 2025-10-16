@@ -245,7 +245,7 @@ export default function EnhancedAICodeGeneration() {
                       <CodePreview
                         code={generatedCode}
                         isLoading={isGenerating}
-                        metrics={generationMetrics}
+                        metrics={generationMetrics || undefined}
                         className="h-full"
                       />
                     </motion.div>

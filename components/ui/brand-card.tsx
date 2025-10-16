@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { forwardRef } from "react"
 
 interface BrandCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "elevated" | "outlined" | "glass"
+  variant?: "default" | "elevated" | "outlined" | "glass" | "gradient"
   hover?: boolean
   children: React.ReactNode
 }
@@ -18,6 +18,7 @@ const BrandCard = forwardRef<HTMLDivElement, BrandCardProps>(
       elevated: "bg-white shadow-xl",
       outlined: "bg-white border-2 border-gray-200 shadow-sm",
       glass: "bg-white/80 backdrop-blur-md border border-white/20 shadow-lg",
+      gradient: "bg-gradient-to-br from-white to-gray-50 shadow-lg border border-gray-100",
     }
 
     const hoverEffects = hover ? "hover:shadow-xl hover:-translate-y-1" : ""
@@ -32,7 +33,7 @@ const BrandCard = forwardRef<HTMLDivElement, BrandCardProps>(
           rounded-xl transition-all duration-300
           ${variants[variant]} ${hoverEffects} ${className}
         `}
-        {...props}
+        {...(props as any)}
       >
         {children}
       </motion.div>

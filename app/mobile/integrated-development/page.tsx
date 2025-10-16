@@ -22,7 +22,7 @@ import {
   History,
   WifiOff,
 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/lib/utils/client-toast"
 import MobileAICodeGenerator from "@/components/mobile/mobile-ai-code-generator"
 import MobileCodeSandbox from "@/components/mobile/mobile-code-sandbox"
 import MobileCollaborativeEditor from "@/components/mobile/mobile-collaborative-editor"
@@ -450,7 +450,7 @@ function MobileSettingsPage({ onBack }: { onBack: () => void }) {
               <span className="text-sm font-medium">2.3 GB / 5 GB</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{ width: "46%" }} />
+              <div className="bg-blue-600 h-2 rounded-full w-[46%]" />
             </div>
             <Button variant="outline" className="w-full">
               清理缓存

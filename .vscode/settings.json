@@ -1,0 +1,10 @@
+{
+    "git.ignoreLimitWarning": true,
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "typescript.preferences.importModuleSpecifier": "non-relative",
+    "javascript.preferences.importModuleSpecifier": "non-relative",
+    "path-intellisense.mappings": {
+        "@": "${workspaceFolder}"
+    },
+    "typescript.tsdk": "node_modules/typescript/lib"
+}

@@ -1,269 +1,261 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Code, Copy, Save, Star, Download, Play, Sparkles } from "lucide-react"
-import { BrandButton } from "@/components/ui/brand-button"
-import { BrandCard } from "@/components/ui/brand-card"
-import { BrandBadge } from "@/components/ui/brand-badge"
+import { useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Code,
+  Copy,
+  Save,
+  Star,
+  Play,
+  Sparkles,
+  AlertCircle,
+} from "lucide-react";
+import { BrandButton } from "@/components/ui/brand-button";
+import { BrandCard } from "@/components/ui/brand-card";
+import { BrandBadge } from "@/components/ui/brand-badge";
 
-export default function AICodeGeneration() {
-  const [prompt, setPrompt] = useState("")
-  const [selectedModel, setSelectedModel] = useState("gpt-4")
-  const [generatedCode, setGeneratedCode] = useState("")
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [language, setLanguage] = useState("python")
+function AiCodeGeneration() {
+  const [prompt, setPrompt] = useState("");
+  const [selectedModel, setSelectedModel] = useState("gpt-4");
+  const [language, setLanguage] = useState("python");
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [messages, setMessages] = useState<
+    Array<{ role: string; content: string }>
+  >([]);
 
-  // 模拟代码生成
-  const handleGenerate = async () => {
-    setIsGenerating(true)
-    // 模拟API调用延迟
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // 模拟生成的代码
-    const sampleCode = `# ${prompt || "生成的代码示例"}
-def bubble_sort(arr):
-    """
-    冒泡排序算法实现
-    时间复杂度: O(n²)
-    空间复杂度: O(1)
-    """
-    n = len(arr)
-    for i in range(n):
-        for j in range(0, n - i - 1):
-            if arr[j] > arr[j + 1]:
-                arr[j], arr[j + 1] = arr[j + 1], arr[j]
-    return arr
-
-# 使用示例
-if __name__ == "__main__":
-    numbers = [64, 34, 25, 12, 22, 11, 90]
-    print("原始数组:", numbers)
-    sorted_numbers = bubble_sort(numbers.copy())
-    print("排序后数组:", sorted_numbers)`
-
-    setGeneratedCode(sampleCode)
-    setIsGenerating(false)
-  }
-
+  // 代码生成逻辑可在此补充
   const models = [
-    { id: "gpt-4", name: "GPT-4", status: "在线", color: "success" },
-    { id: "claude-3", name: "Claude-3", status: "在线", color: "success" },
-    { id: "llama3", name: "Llama3", status: "在线", color: "success" },
-    { id: "qwen2", name: "Qwen2", status: "维护中", color: "warning" },
-    { id: "codellama", name: "CodeLlama", status: "离线", color: "error" },
-  ]
+    { id: "gpt-4", name: "GPT-4" },
+    { id: "claude-3", name: "Claude-3" },
+    { id: "llama3", name: "Llama3" },
+    { id: "qwen2", name: "Qwen2" },
+    { id: "codellama", name: "CodeLlama" },
+  ];
+  const languages = [
+    "python",
+    "javascript",
+    "typescript",
+    "java",
+    "cpp",
+    "go",
+    "rust",
+    "php",
+  ];
 
-  const languages = ["python", "javascript", "typescript", "java", "cpp", "go", "rust", "php"]
+  // 分屏/合并切换
+  const [split, setSplit] = useState(false); // true=分屏，false=合并 (默认合屏)
+
+  // 跳转本地大模型管理页
+  const handleGoLocalModel = () => {
+    window.location.href = "/admin/local-models";
+  };
 
   return (
-    <div className="h-full">
-      <BrandCard variant="glass" className="h-full overflow-hidden">
-        <div className="h-full flex flex-col">
-          {/* 头部标题区 */}
-          <div className="p-6 border-b border-gray-200/50 bg-gradient-to-r from-cloud-blue-50 to-mint-green/10">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center space-x-3"
-            >
-              <div className="w-12 h-12 bg-gradient-to-r from-cloud-blue-500 to-mint-green rounded-xl flex items-center justify-center shadow-glow">
-                <Code className="h-6 w-6 text-white" />
+    <div className="h-screen flex flex-col bg-white">
+      {/* 顶部标题栏：彩色渐变旋变大字居中 */}
+      <div className="w-full flex flex-col items-center justify-center px-8 pt-8 pb-2 select-none">
+        <h1 className="gradient-rotate text-3xl md:text-4xl font-extrabold text-center select-none">
+          言传千行代码丨语枢万物智联
+        </h1>
+      </div>
+      {/* 顶部功能栏：模型选择、语言选择，下拉式 */}
+      <div className="flex items-center px-8 py-4 border-b border-gray-200 bg-white/90 gap-4">
+        <div className="flex-1 flex items-center">
+          {/* 原“本地大模型管理”按钮已删除 */}
+        </div>
+        <div className="flex items-center gap-4">
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className="px-4 py-2 border rounded-lg text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            title="选择大模型"
+          >
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="px-4 py-2 border rounded-lg text-base font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            title="选择目标语言"
+          >
+            {languages.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+          {/* 分屏/合并切换按钮，主内容区和左侧导航栏第三项交互一致 */}
+          <button
+            className={`rounded border px-4 py-2 font-medium transition-all duration-150 shadow-sm hover:bg-blue-100 active:scale-95 ${split ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-700"}`}
+            onClick={() => setSplit((v) => !v)}
+            title={split ? "切换为合并视图" : "切换为分屏视图"}
+          >
+            <Code className="w-4 h-4 mr-1 inline-block" />
+            {split ? "分屏" : "合并"}
+          </button>
+        </div>
+      </div>
+      {/* 主内容区一分为二或合并，分割线加阴影 */}
+      <div className="flex flex-1">
+        {/* 左侧：AI智能交互区 */}
+        <div
+          className="flex-1 flex flex-col bg-white/80 transition-all duration-300"
+        >
+          {/* 对话历史区 */}
+          <div className="flex-1 overflow-auto p-6 space-y-2">
+            {/* 红色框“AI智能交互区”已删除，仅保留空内容或注释 */}
+            {messages.length === 0 && (
+              <div className="text-gray-300 text-center mt-20 select-none text-base">
+                暂无对话
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center space-x-2">
-                  <span>AI代码生成</span>
-                  <Sparkles className="h-5 w-5 text-cloud-blue-500" />
-                </h2>
-                <p className="text-gray-600">通过自然语言描述生成高质量代码</p>
+            )}
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`mb-2 text-base ${msg.role === "user" ? "text-blue-700" : "text-green-700"}`}
+              >
+                <b>{msg.role === "user" ? "我" : "AI"}：</b> {msg.content}
               </div>
-            </motion.div>
+            ))}
           </div>
-
-          {/* 主要内容区 */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* 左侧输入区 */}
-            <div className="w-1/2 p-6 border-r border-gray-200/50">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="h-full flex flex-col space-y-4"
-              >
-                {/* 模型选择 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">选择AI模型</label>
-                  <div className="relative">
-                    <select
-                      value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cloud-blue-500/50 focus:border-cloud-blue-500 bg-white"
-                    >
-                      {models.map((model) => (
-                        <option key={model.id} value={model.id} disabled={model.status !== "在线"}>
-                          {model.name} - {model.status}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex space-x-1">
-                      {models.map(
-                        (model) =>
-                          model.id === selectedModel && (
-                            <BrandBadge key={model.id} variant={model.color as any} size="sm">
-                              {model.status}
-                            </BrandBadge>
-                          ),
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 编程语言选择 */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">目标语言</label>
-                  <div className="flex flex-wrap gap-2">
-                    {languages.map((lang) => (
-                      <motion.button
-                        key={lang}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setLanguage(lang)}
-                        className={`px-3 py-1.5 text-sm rounded-full transition-all duration-200 ${
-                          language === lang
-                            ? "bg-cloud-blue-500 text-white shadow-md"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        {lang}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 提示词输入 */}
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">描述你的需求</label>
-                  <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="例如：生成一个Python冒泡排序算法，包含详细注释和使用示例"
-                    className="w-full h-full p-4 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-cloud-blue-500/50 focus:border-cloud-blue-500 bg-white"
-                  />
-                </div>
-
-                {/* 生成按钮 */}
-                <BrandButton
-                  variant="gradient"
-                  size="lg"
-                  onClick={handleGenerate}
-                  loading={isGenerating}
-                  disabled={!prompt.trim()}
-                  icon={<Play className="h-4 w-4" />}
-                  className="w-full"
-                >
-                  {isGenerating ? "生成中..." : "生成代码"}
-                </BrandButton>
-              </motion.div>
-            </div>
-
-            {/* 右侧代码展示区 */}
-            <div className="w-1/2 p-6">
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="h-full flex flex-col"
-              >
-                {/* 操作栏 */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">生成结果</h3>
-                  {generatedCode && (
-                    <div className="flex space-x-2">
-                      <BrandButton variant="outline" size="sm" icon={<Copy className="h-4 w-4" />}>
-                        复制
-                      </BrandButton>
-                      <BrandButton variant="outline" size="sm" icon={<Save className="h-4 w-4" />}>
-                        保存
-                      </BrandButton>
-                      <BrandButton variant="outline" size="sm" icon={<Star className="h-4 w-4" />}>
-                        评分
-                      </BrandButton>
-                      <BrandButton variant="outline" size="sm" icon={<Download className="h-4 w-4" />}>
-                        导出
-                      </BrandButton>
-                    </div>
-                  )}
-                </div>
-
-                {/* 代码显示区 */}
-                <BrandCard variant="outlined" className="flex-1 overflow-hidden">
-                  {generatedCode ? (
-                    <motion.pre
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="h-full p-4 text-sm text-green-400 font-mono overflow-auto bg-gray-900 rounded-lg"
-                    >
-                      <code>{generatedCode}</code>
-                    </motion.pre>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-gray-500 bg-gray-50 rounded-lg">
-                      <div className="text-center">
-                        <motion.div
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                        >
-                          <Code className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        </motion.div>
-                        <p>在左侧输入需求描述，点击生成代码</p>
-                      </div>
-                    </div>
-                  )}
-                </BrandCard>
-
-                {/* 质量评分显示 */}
-                {generatedCode && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="mt-4"
-                  >
-                    <BrandCard variant="glass">
-                      <div className="p-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">代码质量评分</span>
-                          <div className="flex items-center space-x-2">
-                            <div className="flex space-x-1">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <motion.div
-                                  key={star}
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ delay: star * 0.1 }}
-                                >
-                                  <Star
-                                    className={`h-4 w-4 ${
-                                      star <= 4 ? "text-lemon-yellow fill-current" : "text-gray-300"
-                                    }`}
-                                  />
-                                </motion.div>
-                              ))}
-                            </div>
-                            <BrandBadge variant="success" size="sm">
-                              4.2/5.0
-                            </BrandBadge>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-2">代码结构清晰，注释完整，建议添加异常处理</p>
-                      </div>
-                    </BrandCard>
-                  </motion.div>
-                )}
-              </motion.div>
-            </div>
+          {/* 用户输入区，参照蓝色箭头位置 */}
+          <div className="p-4 border-t flex items-center gap-2 bg-white">
+            <input
+              className="flex-1 rounded-full border px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-150"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="请输入需求、问题或指令..."
+            />
+            <button
+              className="rounded-full bg-gray-100 p-2 text-xl hover:bg-blue-200 active:scale-95 transition"
+              title="表情"
+              tabIndex={0}
+            >
+              <Sparkles className="w-5 h-5" />
+            </button>
+            <button
+              className="rounded-full bg-gray-100 p-2 text-xl hover:bg-blue-200 active:scale-95 transition"
+              title="上传"
+              tabIndex={0}
+            >
+              <Copy className="w-5 h-5" />
+            </button>
+            <button
+              className="rounded-full bg-gray-100 p-2 text-xl hover:bg-blue-200 active:scale-95 transition"
+              title="语音"
+              tabIndex={0}
+            >
+              <AlertCircle className="w-5 h-5" />
+            </button>
+            <button
+              className="rounded-full bg-blue-500 text-white px-6 py-2 font-semibold text-base hover:bg-blue-600 active:scale-95 transition flex items-center gap-1"
+              onClick={async () => {
+                if (!prompt.trim()) return;
+                setMessages((msgs) => [
+                  ...msgs,
+                  { role: "user", content: prompt },
+                ]);
+                setIsGenerating(true);
+                // 这里可接入统一API调用
+                setTimeout(() => {
+                  setMessages((msgs) => [
+                    ...msgs,
+                    { role: "ai", content: `已收到：${prompt}` },
+                  ]);
+                  // 生成代码时自动分屏
+                  setSplit(true);
+                  // 模拟生成代码内容
+                  setGeneratedCode(`# ${prompt}\n\n# 由${selectedModel}生成的${language}代码示例\nprint("Hello from AI code generation")`);
+                  setIsGenerating(false);
+                  setPrompt("");
+                }, 1200);
+              }}
+              disabled={isGenerating || !prompt.trim()}
+              tabIndex={0}
+            >
+              <Play className="w-4 h-4" />
+              发送
+            </button>
           </div>
         </div>
-      </BrandCard>
+        {/* 右侧：智能生成内容/代码预览区 */}
+
+        {split && (
+          <RightPanel
+            generatedCode={generatedCode}
+            setGeneratedCode={setGeneratedCode}
+          />
+        )}
+      </div>
     </div>
-  )
+  );
 }
+
+// 只保留一份定义在文件底部
+function RightPanel({
+  generatedCode,
+  setGeneratedCode,
+}: {
+  generatedCode: string;
+  setGeneratedCode: (v: string) => void;
+}) {
+  return (
+    <div className="flex-1 flex flex-col bg-gray-50 transition-all duration-300">
+      <div className="flex-1 p-6 overflow-auto">
+        <div className="bg-white rounded-lg shadow p-4 min-h-[300px] text-base text-gray-800 font-mono whitespace-pre-wrap">
+          {generatedCode || ""}
+        </div>
+      </div>
+      <div className="p-4 border-t flex gap-2 bg-white">
+        <button
+          className="rounded border px-4 py-2 hover:bg-blue-100 active:scale-95 transition flex items-center gap-1"
+          onClick={() => navigator.clipboard.writeText(generatedCode)}
+          disabled={!generatedCode}
+          tabIndex={0}
+        >
+          <Copy className="w-4 h-4" />
+          复制
+        </button>
+        <button
+          className="rounded border px-4 py-2 hover:bg-blue-100 active:scale-95 transition flex items-center gap-1"
+          onClick={() => setGeneratedCode("")}
+          tabIndex={0}
+        >
+          <Save className="w-4 h-4" />
+          清空
+        </button>
+        <button
+          className="rounded border px-4 py-2 hover:bg-blue-100 active:scale-95 transition flex items-center gap-1"
+          onClick={() => alert("下载功能开发中")}
+          tabIndex={0}
+        >
+          <DownloadIcon />
+          下载
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 20 20">
+      <path
+        d="M10 3v10m0 0l-4-4m4 4l4-4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect x="4" y="15" width="12" height="2" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+export default AiCodeGeneration;

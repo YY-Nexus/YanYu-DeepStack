@@ -1,9 +1,13 @@
-import IntegratedCodePreview from "@/components/modules/integrated-code-preview"
+"use client"
 
-export const metadata = {
-  title: "代码预览 - 言語云³深度堆栈",
-  description: "实时预览、运行和优化代码，支持多种编程语言和格式",
-}
+"use client"
+
+import dynamic from 'next/dynamic'
+
+// 动态导入客户端组件
+const IntegratedCodePreview = dynamic(() => 
+  import("@/components/modules/integrated-code-preview")
+)
 
 export default function CodePreviewPage() {
   return <IntegratedCodePreview />

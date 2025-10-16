@@ -1,409 +1,333 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Eye, Code, FileText, Split, Maximize2, Download, Play, Terminal } from "lucide-react"
-import { BrandButton } from "@/components/ui/brand-button"
-import { BrandCard } from "@/components/ui/brand-card"
-import { BrandBadge } from "@/components/ui/brand-badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import MonacoEditor from "@/components/ui/monaco-editor"
-import MarkdownPreview from "@/components/ui/markdown-preview"
-import { useModelCodeIntegration } from "@/lib/ai/model-code-integration"
-import { detectLanguage } from "@/lib/utils"
-
-type LayoutMode = "split" | "preview-only" | "editor-only"
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { BrandCard } from "@/components/ui/brand-card";
+import { Button } from "@/components/ui/button";
+import { BrandButton } from "@/components/ui/brand-button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Code, Download, Play, FileText, Terminal } from "lucide-react";
+import MonacoEditor from "@/components/ui/monaco-editor";
+import MarkdownPreview from "@/components/ui/markdown-preview";
+import { detectLanguage, getFileExtension } from "@/lib/utils";
 
 interface IntegratedCodePreviewProps {
-  initialCode?: string
-  initialLanguage?: string
-  className?: string
+  initialCode?: string;
+  initialLanguage?: string;
+  className?: string;
+  onCodeChange?: (code: string) => void;
+  readOnly?: boolean;
 }
 
 export default function IntegratedCodePreview({
   initialCode = "",
   initialLanguage = "javascript",
   className = "",
+  onCodeChange,
+  readOnly = false,
 }: IntegratedCodePreviewProps) {
-  const [code, setCode] = useState(initialCode)
-  const [language, setLanguage] = useState(initialLanguage)
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("split")
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [activeTab, setActiveTab] = useState("code")
-  const [consoleOutput, setConsoleOutput] = useState<string[]>([])
-  const [isRunning, setIsRunning] = useState(false)
-  const [runError, setRunError] = useState<string | null>(null)
+  const [code, setCode] = useState(initialCode);
+  const [language, setLanguage] = useState(initialLanguage);
+  const [activeTab, setActiveTab] = useState("code");
+  const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const { generateCode, isGenerating } = useModelCodeIntegration()
-
-  // 当初始代码变化时更新
+  // 初始化语言检测
   useEffect(() => {
-    if (initialCode) {
-      setCode(initialCode)
-      const detectedLang = detectLanguage(initialCode)
-      setLanguage(detectedLang)
+    if (initialCode && !initialLanguage) {
+      setLanguage(detectLanguage(initialCode));
     }
-  }, [initialCode])
+  }, [initialCode, initialLanguage]);
 
-  // 运行代码
-  const handleRunCode = async () => {
-    if (!code.trim()) return
+  // 同步代码变化到父组件
+  useEffect(() => {
+    if (onCodeChange) {
+      onCodeChange(code);
+    }
+  }, [code, onCodeChange]);
 
-    setIsRunning(true)
-    setRunError(null)
-    setConsoleOutput([])
-
+  // 执行代码
+  const executeCode = async (codeToExecute: string, codeLanguage: string) => {
+    setIsExecuting(true);
     try {
-      // 创建一个安全的执行环境
-      const originalConsoleLog = console.log
-      const logs: string[] = []
-
-      // 重写console.log
-      console.log = (...args) => {
-        const output = args
-          .map((arg) => (typeof arg === "object" ? JSON.stringify(arg, null, 2) : String(arg)))
-          .join(" ")
-        logs.push(output)
+      const response = await fetch('/api/code-execution', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: codeToExecute,
+          language: codeLanguage
+        }),
+      });
+      
+      const result = await response.json();
+      setIsExecuting(false);
+      
+      if (result.success) {
+        return { success: true, output: result.output };
+      } else {
+        throw new Error(result.error || '代码执行失败');
       }
+    } catch (err) {
+      setIsExecuting(false);
+      throw err;
+    }
+  };
 
-      // 执行代码
-      try {
-        // 使用Function构造函数创建可执行的函数
-        // 注意：这在生产环境中存在安全风险，应该使用沙箱或服务端执行
-        const executableCode = `
-          try {
-            ${code}
-          } catch (error) {
-            console.log('执行错误:', error.message);
+  // 分析代码
+  const analyzeCode = async (codeToAnalyze: string, codeLanguage: string) => {
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('/api/code-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: codeToAnalyze,
+          language: codeLanguage,
+          options: {
+            checkSecurity: true,
+            checkPerformance: true,
+            checkMaintainability: true,
+            checkComplexity: true
           }
-        `
-        // eslint-disable-next-line no-new-func
-        const runFunction = new Function(executableCode)
-        await runFunction()
-      } catch (error) {
-        logs.push(`执行错误: ${error instanceof Error ? error.message : String(error)}`)
+        }),
+      });
+      
+      const result = await response.json();
+      setIsAnalyzing(false);
+      
+      if (result.success) {
+        return result.data;
+      } else {
+        throw new Error(result.error || '代码分析失败');
       }
+    } catch (err) {
+      setIsAnalyzing(false);
+      throw err;
+    }
+  };
 
-      // 恢复原始console.log
-      console.log = originalConsoleLog
+  // 执行代码
+  const handleRunCode = useCallback(async () => {
+    if (!code.trim()) return;
 
-      // 更新输出
-      setConsoleOutput(logs)
-      setActiveTab("console")
-    } catch (error) {
-      setRunError(error instanceof Error ? error.message : "代码执行失败")
+    setIsRunning(true);
+    setError(null);
+    setConsoleOutput([]);
+
+    try {
+      const result = await executeCode(code, language);
+      if (result && result.success) {
+        setConsoleOutput([...consoleOutput, result.output]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "执行代码时出错");
     } finally {
-      setIsRunning(false)
+      setIsRunning(false);
     }
-  }
+  }, [code, language, consoleOutput]);
 
-  // 优化代码
-  const handleOptimizeCode = async () => {
-    if (!code.trim()) return
+  // 分析代码
+  const handleAnalyzeCode = useCallback(async () => {
+    if (!code.trim()) return;
 
     try {
-      const prompt = `请优化以下${language}代码，提高可读性、性能和最佳实践，并添加中文注释解释关键部分：\n\n${code}`
-
-      const result = await generateCode(prompt, {
-        temperature: 0.3, // 低温度以获得更确定性的结果
-        includeComments: true,
-      })
-
-      if (result.success) {
-        setCode(result.code)
-      } else {
-        setRunError(result.error || "优化代码失败")
+      const result = await analyzeCode(code, language);
+      if (result) {
+        setConsoleOutput([JSON.stringify(result, null, 2)]);
+        setActiveTab("console");
       }
-    } catch (error) {
-      setRunError(error instanceof Error ? error.message : "优化代码失败")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "分析代码时出错");
     }
-  }
-
-  // 解释代码
-  const handleExplainCode = async () => {
-    if (!code.trim()) return
-
-    try {
-      const prompt = `请详细解释以下${language}代码的功能、结构和工作原理，使用中文并以markdown格式输出：\n\n${code}`
-
-      const result = await generateCode(prompt, {
-        temperature: 0.3,
-      })
-
-      if (result.success) {
-        setConsoleOutput([result.code])
-        setActiveTab("console")
-      } else {
-        setRunError(result.error || "解释代码失败")
-      }
-    } catch (error) {
-      setRunError(error instanceof Error ? error.message : "解释代码失败")
-    }
-  }
-
-  // 切换全屏模式
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen)
-  }
+  }, [code, language]);
 
   // 下载代码
-  const handleDownloadCode = () => {
-    const fileExtension = getFileExtensionForLanguage(language)
-    const blob = new Blob([code], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `code${fileExtension}`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
+  const handleDownloadCode = useCallback(() => {
+    const extension = getFileExtension(language);
+    const blob = new Blob([code], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
 
-  // 根据语言获取文件扩展名
-  const getFileExtensionForLanguage = (lang: string): string => {
-    const extensionMap: Record<string, string> = {
-      javascript: ".js",
-      typescript: ".ts",
-      python: ".py",
-      java: ".java",
-      csharp: ".cs",
-      cpp: ".cpp",
-      go: ".go",
-      rust: ".rs",
-      php: ".php",
-      ruby: ".rb",
-      html: ".html",
-      css: ".css",
-      sql: ".sql",
+    a.href = url;
+    a.download = `code${extension}`;
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }, [code, language]);
+
+  // 渲染预览内容
+  const renderPreview = useCallback(() => {
+    if (language === "markdown") {
+      return <MarkdownPreview content={code} />;
     }
 
-    return extensionMap[lang] || ".txt"
-  }
+    if (language === "html") {
+      return (
+        <iframe
+          srcDoc={code}
+          className="w-full h-full border border-gray-200 rounded-lg"
+          title="HTML Preview"
+          sandbox="allow-scripts"
+        />
+      );
+    }
+
+    if (language === "javascript" || language === "typescript") {
+      return (
+        <div className="p-4 text-center text-gray-500">
+          <p>点击"运行"按钮执行代码</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="p-4 text-center text-gray-500">
+        <p>当前语言不支持实时预览</p>
+      </div>
+    );
+  }, [code, language]);
 
   return (
     <div className={`h-full ${className}`}>
-      <BrandCard 
-        variant="glass" 
-        className={`h-full overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
-      >
-        <div className="h-full flex flex-col">
-          {/* 头部工具栏 */}
-          <div className="p-4 border-b border-gray-200/50 bg-gradient-to-r from-cloud-blue-50 to-mint-green/10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-cloud-blue-500 to-mint-green rounded-lg flex items-center justify-center shadow-glow">
-                  <Eye className="h-4 w-4 text-white" />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <h3 className="font-semibold text-gray-800">代码预览</h3>
-                  <BrandBadge variant="outline" size="sm">
-                    {language.toUpperCase()}
-                  </BrandBadge>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                {/* 布局切换 */}
-                <div className="flex items-center border rounded-md overflow-hidden">
-                  <button
-                    onClick={() => setLayoutMode("editor-only")}
-                    className={`p-1.5 ${layoutMode === "editor-only" ? "bg-gray-100" : "bg-white"}`}
-                    title="仅编辑器"
-                  >
-                    <Code className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setLayoutMode("split")}
-                    className={`p-1.5 ${layoutMode === "split" ? "bg-gray-100" : "bg-white"}`}
-                    title="分屏模式"
-                  >
-                    <Split className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setLayoutMode("preview-only")}
-                    className={`p-1.5 ${layoutMode === "preview-only" ? "bg-gray-100" : "bg-white"}`}
-                    title="仅预览"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                </div>
-                
-                {/* 全屏切换 */}
-                <button
-                  onClick={toggleFullscreen}
-                  className="p-1.5 border rounded-md"
-                  title="全屏切换"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </button>
-                
-                {/* 下载代码 */}
-                <button
-                  onClick={handleDownloadCode}
-                  className="p-1.5 border rounded-md"
-                  title="下载代码"
-                >
-                  <Download className="h-4 w-4" />
-                </button>
-              </div>
+      <BrandCard variant="glass" className="h-full overflow-hidden">
+        {/* 顶部工具栏 */}
+        <div className="p-4 border-b border-gray-200/50 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Code className="text-cloud-blue-500" />
+              <h3 className="font-semibold text-gray-800">代码预览</h3>
+              <span className="text-xs px-2 py-0.5 bg-gray-100 rounded-full">
+                {language.toUpperCase()}
+              </span>
             </div>
-          </div>
 
-          {/* 主要内容区 */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* 编辑器区域 */}
-            {layoutMode !== "preview-only" && (
-              <div className={`${layoutMode === "split" ? "w-1/2" : "w-full"} h-full border-r border-gray-200/50`}>
-                <MonacoEditor
-                  value={code}
-                  language={language}
-                  onChange={setCode}
-                  options={{
-                    minimap: { enabled: true },
-                    fontSize: 14,
-                    lineNumbers: "on",
-                    wordWrap: "on",
-                    automaticLayout: true,
-                  }}
-                />
-              </div>
-            )}
-            
-            {/* 预览区域 */}
-            {layoutMode !== "editor-only" && (
-              <div className={`${layoutMode === "split" ? "w-1/2" : "w-full"} h-full flex flex-col`}>
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-                  <div className="border-b border-gray-200/50 px-4">
-                    <TabsList className="h-12">
-                      <TabsTrigger value="preview" className="flex items-center gap-1">
-                        <Eye className="h-4 w-4" />
-                        预览
-                      </TabsTrigger>
-                      <TabsTrigger value="console" className="flex items-center gap-1">
-                        <Terminal className="h-4 w-4" />
-                        控制台
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
-                  
-                  <TabsContent value="preview" className="flex-1 p-4 overflow-auto">
-                    <div className="h-full">
-                      {language === "markdown" ? (
-                        <MarkdownPreview content={code} />
-                      ) : language === "html" ? (
-                        <iframe
-                          srcDoc={code}
-                          className="w-full h-full border-0"
-                          title="HTML Preview"
-                          sandbox="allow-scripts"
-                        />
-                      ) : (
-                        <div className="h-full flex items-center justify-center">
-                          <div className="text-center">
-                            <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                            <p className="text-sm text-muted-foreground">
-                              {language === "javascript" || language === "typescript" 
-                                ? "点击"运行"按钮执行代码" 
-                                : `${language.toUpperCase()} 代码预览不可用`}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="console" className="flex-1 p-0 overflow-hidden">
-                    <div className="h-full flex flex-col">
-                      <div className="flex-1 bg-gray-900 text-gray-100 p-4 font-mono text-sm overflow-auto">\
-                        {consoleOutput.length > 0 ? (
-                          <div>
-                            {consoleOutput.map((output, index) => (
-                              <div key={index} className="mb-1">
-                                {output.startsWith('\`\`\`') ? (
-                                  <MarkdownPreview content={output} />
-                                ) : (
-                                  <pre className="whitespace-pre-wrap">{output}</pre>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-gray-500 italic">控制台输出将显示在这里。</div>
-                        )}
-                      </div>
-                      
-                      {runError && (
-                        <Alert variant="destructive" className="m-2">
-                          <AlertDescription>{runError}</AlertDescription>
-                        </Alert>
-                      )}
-                      
-                      <div className="p-2 border-t border-gray-700 bg-gray-800 flex items-center justify-between">
-                        <div className="text-xs text-gray-400">
-                          {isRunning ? "执行中..." : consoleOutput.length > 0 ? `${consoleOutput.length} 条输出` : ""}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => setConsoleOutput([])}
-                            className="text-xs text-gray-400 hover:text-white"
-                          >
-                            清除
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-          </div>
+            <div className="flex items-center gap-2">
+              <BrandButton
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadCode}
+                icon={<Download className="h-4 w-4" />}
+              >
+                下载
+              </BrandButton>
 
-          {/* 底部操作栏 */}
-          <div className="p-4 border-t border-gray-200/50 bg-gray-50">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                {code.length} 字符 | {code.split('\n').length} 行
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <BrandButton
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExplainCode}
-                  loading={isGenerating}
-                  disabled={!code.trim() || isGenerating || isRunning}
-                  icon={<FileText className="h-4 w-4" />}
-                >
-                  解释代码
-                </BrandButton>
-                
-                <BrandButton
-                  variant="outline"
-                  size="sm"
-                  onClick={handleOptimizeCode}
-                  loading={isGenerating}
-                  disabled={!code.trim() || isGenerating || isRunning}
-                  icon={<Code className="h-4 w-4" />}
-                >
-                  优化代码
-                </BrandButton>
-                
+              <BrandButton
+                variant="outline"
+                size="sm"
+                onClick={handleAnalyzeCode}
+                loading={isAnalyzing}
+                disabled={!code.trim() || isExecuting}
+                icon={<FileText className="h-4 w-4" />}
+              >
+                分析
+              </BrandButton>
+
+              {["javascript", "typescript"].includes(language) && (
                 <BrandButton
                   variant="gradient"
                   size="sm"
                   onClick={handleRunCode}
-                  loading={isRunning}
-                  disabled={!code.trim() || isRunning || isGenerating || (language !== "javascript" && language !== "typescript")}
+                  loading={isRunning || isExecuting}
+                  disabled={!code.trim() || isExecuting}
                   icon={<Play className="h-4 w-4" />}
                 >
                   运行
                 </BrandButton>
-              </div>
+              )}
             </div>
+          </div>
+        </div>
+
+        {/* 主要内容区 */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* 代码编辑器 */}
+          <div className="w-1/2 h-full border-r border-gray-200/50">
+            <MonacoEditor
+              value={code}
+              language={language}
+              onChange={setCode}
+              options={{
+                minimap: { enabled: true },
+                fontSize: 14,
+                lineNumbers: "on",
+                wordWrap: "on",
+                readOnly,
+                theme: "vs-dark",
+              }}
+            />
+          </div>
+
+          {/* 预览区域 */}
+          <div className="w-1/2 h-full flex flex-col">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="h-full flex flex-col"
+            >
+              <div className="border-b border-gray-200/50 px-4">
+                <TabsList className="h-12">
+                  <TabsTrigger
+                    value="preview"
+                    className="flex items-center gap-1"
+                  >
+                    <Code className="h-4 w-4" />
+                    预览
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="console"
+                    className="flex items-center gap-1"
+                  >
+                    <Terminal className="h-4 w-4" />
+                    控制台
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="preview" className="flex-1 p-4 overflow-auto">
+                {renderPreview()}
+              </TabsContent>
+
+              <TabsContent
+                value="console"
+                className="flex-1 bg-gray-900 text-gray-100 p-4 font-mono text-sm overflow-auto"
+              >
+                {consoleOutput.length > 0 ? (
+                  consoleOutput.map((output, index) => (
+                    <div key={index} className="mb-2">
+                      {output.startsWith("```") ? (
+                        <MarkdownPreview content={output} />
+                      ) : (
+                        <pre className="whitespace-pre-wrap">{output}</pre>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-gray-500 italic">
+                    {isRunning ? "执行中..." : "运行代码后输出将显示在这里"}
+                  </div>
+                )}
+
+                {error && (
+                  <div className="mt-4 p-2 bg-red-500/10 text-red-400 rounded">
+                    {error}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </BrandCard>
     </div>
-  )
+  );
 }

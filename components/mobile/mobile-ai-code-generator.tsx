@@ -363,7 +363,7 @@ console.log(output);
                     {/* 代码显示 */}
                     <ScrollArea className="flex-1">
                       <div className="p-4">
-                        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto">
+                        <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg text-xs overflow-x-auto border border-gray-700">
                           <code>{generatedCode}</code>
                         </pre>
                       </div>
@@ -395,7 +395,7 @@ console.log(output);
                             <span className="text-xs text-muted-foreground">{item.timestamp.toLocaleString()}</span>
                           </div>
                           <p className="text-sm font-medium line-clamp-2">{item.prompt}</p>
-                          <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto line-clamp-3">
+                          <pre className="bg-gray-100 p-2 rounded-lg text-xs overflow-x-auto line-clamp-3 border border-gray-200">
                             <code>{item.code}</code>
                           </pre>
                         </div>

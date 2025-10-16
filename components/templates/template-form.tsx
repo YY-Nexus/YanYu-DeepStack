@@ -25,7 +25,7 @@ const templateFormSchema = z.object({
   prompt: z.string().min(20, "提示词至少需要20个字符"),
   language: z.string().optional(),
   framework: z.string().optional(),
-  category: z.string() as z.ZodType<TemplateCategory>,
+  category: z.enum(["component", "function", "api", "database", "algorithm", "utility", "testing", "documentation", "other"]),
   tags: z.array(z.string()),
   options: z.object({
     temperature: z.number().min(0).max(1),

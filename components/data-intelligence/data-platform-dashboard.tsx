@@ -70,7 +70,7 @@ export default function DataPlatformDashboard() {
   const updateStats = async () => {
     // 获取流处理统计
     const streamTopics = ["ai-model-usage", "user-events", "system-metrics", "code-generation"]
-    const topicStats = {}
+    const topicStats: Record<string, any> = {}
     streamTopics.forEach((topic) => {
       topicStats[topic] = streamProcessor.getTopicStats(topic)
     })
@@ -78,7 +78,7 @@ export default function DataPlatformDashboard() {
 
     // 获取数据湖统计
     const lakeTopics = ["ai_model_usage", "user_events", "code_generation", "system_metrics"]
-    const tableStats = {}
+    const tableStats: Record<string, any> = {}
     lakeTopics.forEach((table) => {
       tableStats[table] = dataLakeManager.getTableStats(table)
     })

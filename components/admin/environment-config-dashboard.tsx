@@ -238,6 +238,17 @@ export default function EnvironmentConfigDashboard() {
           <div className="space-y-6">
             {Object.entries(groupedResults).map(([category, results]) => {
               const info = categoryInfo[category as keyof typeof categoryInfo]
+              // 明确指定results的类型，包含所有必要的属性
+              const typedResults = results as Array<{
+                key: string;
+                configured: boolean;
+                value?: string;
+                valid?: boolean;
+                required?: boolean;
+                message?: string;
+                category: string;
+                description?: string;
+              }>
               const IconComponent = info?.icon || Settings
 
               return (
@@ -247,13 +258,13 @@ export default function EnvironmentConfigDashboard() {
                       <IconComponent className="h-5 w-5" />
                       <span>{info?.name || category}</span>
                       <Badge variant="outline">
-                        {results.filter((r) => r.configured).length}/{results.length}
+                        {typedResults.filter((r) => r.configured).length}/{typedResults.length}
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {results.map((result) => (
+                      {typedResults.map((result) => (
                         <motion.div
                           key={result.key}
                           initial={{ opacity: 0, y: 20 }}

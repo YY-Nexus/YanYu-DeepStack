@@ -280,7 +280,7 @@ export default function ModelPreviewModal({ model, isOpen, onClose }: ModelPrevi
                         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                       </div>
                     ) : (
-                      <pre className="whitespace-pre-wrap font-mono text-sm">
+                      <pre className="whitespace-pre-wrap font-mono text-sm p-4 rounded-lg border border-gray-200">
                         {response || "生成的代码将显示在这里..."}
                       </pre>
                     )}
